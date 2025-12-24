@@ -1,0 +1,18 @@
+experiment_name: basic_agent_debug
+
+output_dir: results
+
+data:
+  source: null
+  split: null
+  limit: 20
+  min_turn_index: null
+
+agent:
+  model: gpt-4o-mini
+  msx_ms: 30000
+  max_steps: 4
+
+eval:
+  compare_order_insensitive: true
+  sample_n_errors: 20
