@@ -1,8 +1,9 @@
 import os
 from pathlib import Path
 
-def _load_dotenv_if_present() -> None:
-    env_path = Path(__file__).resolve() / ".env"
+def load_dotenv() -> None:
+    """Load environment variables from .env file in project root."""
+    env_path = Path(__file__).resolve().parent / ".env"
     if not env_path.exists():
         return
 

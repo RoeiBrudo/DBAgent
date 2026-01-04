@@ -1,0 +1,2505 @@
+{
+  "name": "eval_o3mini_full",
+  "timestamp": "2026-01-04T20:55:51.882452",
+  "config": {
+    "llm_model": "o3-mini",
+    "llm_temperature": 0,
+    "sql_timeout_ms": 30000
+  },
+  "datasets": [
+    "bird",
+    "spider",
+    "cosql",
+    "sparc"
+  ],
+  "samples_per_dataset": 5,
+  "full_conversation_for_cosql": true,
+  "per_dataset_results": {
+    "bird": {
+      "summary": {
+        "total": 5,
+        "passed": 3,
+        "failed": 2,
+        "accuracy": 0.6,
+        "avg_latency_ms": 28984.29,
+        "min_latency_ms": 22735.51,
+        "max_latency_ms": 37973.62
+      },
+      "details": [
+        {
+          "id": "bird:validation:bird:validation:0:0",
+          "db_id": "debit_card_specializing",
+          "question": "What is the ratio of customers who pay in EUR against customers who pay in CZK?",
+          "gold_sql": "SELECT CAST(SUM(IIF(Currency = 'EUR', 1, 0)) AS FLOAT) / SUM(IIF(Currency = 'CZK', 1, 0)) AS ratio FROM customers",
+          "difficulty": "simple",
+          "steps": {
+            "gatekeeper": {
+              "is_legal": true,
+              "latency_ms": 2967.9
+            },
+            "organizer": {
+              "tables": [
+                "customers"
+              ],
+              "fields": [
+                "customers.CustomerID",
+                "customers.Currency"
+              ],
+              "joins_count": 0,
+              "latency_ms": 2595.94
+            },
+            "planner": {
+              "plan": "1. SELECT the aggregated counts for customers paying in EUR and CZK from the customers table.\n2. FROM the \"customers\" table.\n3. No JOINs are needed since all required fields (CustomerID and Currency) are in one table.\n4. No additional WHERE filters are necessary since we want to consider all customers.\n5. Instead of GROUP BY, use conditional aggregation to count customers for each currency (e.g., using CASE WHEN statements).\n6. Calculate the ratio by dividing the count of customers with Currency = 'EUR' by the count with Currency = 'CZK', ensuring to handle division by zero if necessary.\n7. No ORDER BY or LIMIT clauses are required.",
+              "latency_ms": 4076.66
+            },
+            "clarifier": {
+              "clarification": {
+                "output_type": "ratio",
+                "output_description": "Return the ratio of the count of customers with Currency 'EUR' to the count of customers with Currency 'CZK'.",
+                "columns_to_return": [],
+                "calculation_needed": "ratio",
+                "calculation_details": "Count of customers where Currency = 'EUR' divided by count of customers where Currency = 'CZK'",
+                "key_constraints": [
+                  "For numerator: Currency = 'EUR'",
+                  "For denominator: Currency = 'CZK'"
+                ]
+              },
+              "latency_ms": 5656.86
+            },
+            "writer": {
+              "sql": "SELECT CAST(SUM(CASE WHEN Currency = 'EUR' THEN 1 ELSE 0 END) AS FLOAT) /\n       NULLIF(SUM(CASE WHEN Currency = 'CZK' THEN 1 ELSE 0 END), 0) AS ratio\nFROM customers;",
+              "latency_ms": 2907.4
+            },
+            "execute": {
+              "success": true,
+              "status": "success",
+              "latency_ms": 4.87
+            },
+            "validator": {
+              "passed": true,
+              "retries": 0,
+              "latency_ms": 3078.49
+            },
+            "analysis": {
+              "answer": "The analysis shows that the ratio of customers who pay in EUR to those who pay in CZK is approximately 0.06573. In other words, for every CZK-paying customer, there are about 0.06573 EUR-paying customers, or roughly 6.57 EUR-paying customers for every 100 CZK-paying customers.",
+              "latency_ms": 3174.44
+            }
+          },
+          "generated_sql": "SELECT CAST(SUM(CASE WHEN Currency = 'EUR' THEN 1 ELSE 0 END) AS FLOAT) /\n       NULLIF(SUM(CASE WHEN Currency = 'CZK' THEN 1 ELSE 0 END), 0) AS ratio\nFROM customers;",
+          "passed": true,
+          "error": null,
+          "total_latency_ms": 24484.02,
+          "gold_results": [
+            [
+              0.06572769953051644
+            ]
+          ],
+          "generated_results": [
+            [
+              0.06572769953051644
+            ]
+          ]
+        },
+        {
+          "id": "bird:validation:bird:validation:1:0",
+          "db_id": "debit_card_specializing",
+          "question": "In 2012, who had the least consumption in LAM?",
+          "gold_sql": "SELECT T1.CustomerID FROM customers AS T1 INNER JOIN yearmonth AS T2 ON T1.CustomerID = T2.CustomerID WHERE T1.Segment = 'LAM' AND SUBSTR(T2.Date, 1, 4) = '2012' GROUP BY T1.CustomerID ORDER BY SUM(T2.Consumption) ASC LIMIT 1",
+          "difficulty": "moderate",
+          "steps": {
+            "gatekeeper": {
+              "is_legal": true,
+              "latency_ms": 5542.17
+            },
+            "organizer": {
+              "tables": [
+                "yearmonth",
+                "customers"
+              ],
+              "fields": [
+                "yearmonth.CustomerID",
+                "yearmonth.Date",
+                "yearmonth.Consumption",
+                "customers.Currency"
+              ],
+              "joins_count": 1,
+              "latency_ms": 10858.39
+            },
+            "planner": {
+              "plan": "1. SELECT the customer identifier (customers.CustomerID) and the SUM of consumption from yearmonth as the total consumption.  \n2. FROM the yearmonth table.  \n3. INNER JOIN the customers table ON yearmonth.CustomerID = customers.CustomerID.  \n4. In the WHERE clause, filter records so that the Date is in 2012 (e.g., Date starting with \"2012\" or extracting the year equal to 2012) and the customer\u2019s Segment is equal to \"LAM\".  \n5. GROUP BY customers.CustomerID to aggregate consumption per customer.  \n6. ORDER BY the total summed consumption in ascending order to identify the least consumption.  \n7. LIMIT the result to 1 to return only the customer with the least consumption.",
+              "latency_ms": 4318.77
+            },
+            "clarifier": {
+              "clarification": {
+                "output_type": "single_row",
+                "output_description": "Return the CustomerID of the customer (with currency LAM) who had the minimum aggregate consumption in 2012.",
+                "columns_to_return": [
+                  "CustomerID"
+                ],
+                "calculation_needed": "min",
+                "calculation_details": "Aggregate consumption for each customer in 2012 and return the customer with the minimum total consumption.",
+                "key_constraints": [
+                  "yearmonth.Date in 2012",
+                  "customers.Currency = 'LAM'"
+                ]
+              },
+              "latency_ms": 5195.38
+            },
+            "writer": {
+              "sql": "SELECT customers.CustomerID\nFROM customers\nINNER JOIN yearmonth ON customers.CustomerID = yearmonth.CustomerID\nWHERE customers.Segment = 'LAM' \n  AND yearmonth.Date LIKE '2012%'\nGROUP BY customers.CustomerID\nORDER BY SUM(CASE WHEN yearmonth.Date LIKE '2012%' THEN CAST(yearmonth.Consumption AS FLOAT) ELSE 0 END) ASC\nLIMIT 1;",
+              "latency_ms": 5773.32
+            },
+            "execute": {
+              "success": true,
+              "status": "success",
+              "latency_ms": 45.01
+            },
+            "validator": {
+              "passed": true,
+              "retries": 0,
+              "latency_ms": 3243.09
+            },
+            "analysis": {
+              "answer": "In 2012, the customer from the LAM segment with the least consumption was customer 47,273.",
+              "latency_ms": 2898.31
+            }
+          },
+          "generated_sql": "SELECT customers.CustomerID\nFROM customers\nINNER JOIN yearmonth ON customers.CustomerID = yearmonth.CustomerID\nWHERE customers.Segment = 'LAM' \n  AND yearmonth.Date LIKE '2012%'\nGROUP BY customers.CustomerID\nORDER BY SUM(CASE WHEN yearmonth.Date LIKE '2012%' THEN CAST(yearmonth.Consumption AS FLOAT) ELSE 0 END) ASC\nLIMIT 1;",
+          "passed": true,
+          "error": null,
+          "total_latency_ms": 37973.62,
+          "gold_results": [
+            [
+              47273
+            ]
+          ],
+          "generated_results": [
+            [
+              47273
+            ]
+          ]
+        },
+        {
+          "id": "bird:validation:bird:validation:10:0",
+          "db_id": "debit_card_specializing",
+          "question": "Is it true that more SMEs pay in Czech koruna than in euros? If so, how many more?",
+          "gold_sql": "SELECT SUM(Currency = 'CZK') - SUM(Currency = 'EUR') FROM customers WHERE Segment = 'SME'",
+          "difficulty": "simple",
+          "steps": {
+            "gatekeeper": {
+              "is_legal": true,
+              "latency_ms": 2062.1
+            },
+            "organizer": {
+              "tables": [
+                "customers"
+              ],
+              "fields": [
+                "customers.Segment",
+                "customers.Currency"
+              ],
+              "joins_count": 0,
+              "latency_ms": 4209.8
+            },
+            "planner": {
+              "plan": "1. SELECT the difference between the number of SMEs paying in Czech koruna (CZK) and those paying in euros (EUR) by aggregating counts conditionally.  \n2. FROM the customers table.  \n3. No joins are necessary.  \n4. Apply a WHERE filter to restrict the records to SMEs (i.e., customers with Segment equal to \"SME\") and to consider only the relevant currencies (\"CZK\" and \"EUR\").  \n5. Use conditional aggregation (e.g., CASE statements) to count rows where Currency is 'CZK' and 'EUR', then subtract the EUR count from the CZK count.  \n6. No GROUP BY clause is needed since the aggregation is over all filtered records.  \n7. No ORDER BY or LIMIT clause is required.",
+              "latency_ms": 4394.08
+            },
+            "clarifier": {
+              "clarification": {
+                "output_type": "single_value",
+                "output_description": "Returns the difference in the number of SMEs paying in Czech koruna minus those paying in euros. A positive value indicates that more SMEs pay in Czech koruna.",
+                "columns_to_return": [
+                  "difference"
+                ],
+                "calculation_needed": "difference",
+                "calculation_details": "Count of customers where Segment='SME' and Currency='Czech koruna' minus count of customers where Segment='SME' and Currency='euros'",
+                "key_constraints": [
+                  "Segment = 'SME'",
+                  "Currency IN ('Czech koruna', 'euros')"
+                ]
+              },
+              "latency_ms": 5508.85
+            },
+            "writer": {
+              "sql": "SELECT \n  SUM(CASE WHEN Currency = 'CZK' THEN 1 ELSE 0 END) - \n  SUM(CASE WHEN Currency = 'EUR' THEN 1 ELSE 0 END) AS difference\nFROM customers\nWHERE Segment = 'SME'\n  AND Currency IN ('CZK', 'EUR');",
+              "latency_ms": 2562.41
+            },
+            "execute": {
+              "success": true,
+              "status": "success",
+              "latency_ms": 6.31
+            },
+            "validator": {
+              "passed": true,
+              "retries": 0,
+              "latency_ms": 3042.86
+            },
+            "analysis": {
+              "answer": "Yes, more SMEs pay in Czech koruna. There are 23,505 more SMEs using CZK than those using euros.",
+              "latency_ms": 1578.03
+            }
+          },
+          "generated_sql": "SELECT \n  SUM(CASE WHEN Currency = 'CZK' THEN 1 ELSE 0 END) - \n  SUM(CASE WHEN Currency = 'EUR' THEN 1 ELSE 0 END) AS difference\nFROM customers\nWHERE Segment = 'SME'\n  AND Currency IN ('CZK', 'EUR');",
+          "passed": true,
+          "error": null,
+          "total_latency_ms": 23389.63,
+          "gold_results": [
+            [
+              23505
+            ]
+          ],
+          "generated_results": [
+            [
+              23505
+            ]
+          ]
+        },
+        {
+          "id": "bird:validation:bird:validation:100:0",
+          "db_id": "thrombosis_prediction",
+          "question": "Was the patient with the number 57266's uric acid within a normal range?",
+          "gold_sql": "SELECT CASE WHEN (T1.SEX = 'F' AND T2.UA > 6.5) OR (T1.SEX = 'M' AND T2.UA > 8.0) THEN true ELSE false END FROM Patient AS T1 INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID WHERE T1.ID = 57266",
+          "difficulty": "moderate",
+          "steps": {
+            "gatekeeper": {
+              "is_legal": true,
+              "latency_ms": 2129.22
+            },
+            "organizer": {
+              "tables": [
+                "Laboratory"
+              ],
+              "fields": [
+                "Laboratory.ID",
+                "Laboratory.UA"
+              ],
+              "joins_count": 0,
+              "latency_ms": 4835.64
+            },
+            "planner": {
+              "plan": "1. SELECT the \"UA\" field to retrieve the patient's uric acid value.\n2. FROM the \"Laboratory\" table.\n3. Add a WHERE filter where \"Laboratory.ID\" equals 57266.\n4. No JOIN, GROUP BY, or ORDER BY is needed.\n5. Optionally, use LIMIT 1 to ensure a single result is returned.",
+              "latency_ms": 3327.29
+            },
+            "clarifier": {
+              "clarification": {
+                "output_type": "boolean",
+                "output_description": "Return boolean true if the patient 57266's uric acid (UA) measurement is within the normal range, false otherwise",
+                "columns_to_return": [
+                  "UA"
+                ],
+                "calculation_needed": "none",
+                "calculation_details": "The UA value should be compared against defined normal range limits (these limits are assumed to be known in the system)",
+                "key_constraints": [
+                  "Patient ID equals 57266",
+                  "Data from Laboratory table"
+                ]
+              },
+              "latency_ms": 3201.31
+            },
+            "writer": {
+              "sql": "SELECT \n  CASE \n    WHEN CAST(UA AS FLOAT) BETWEEN 3.5 AND 7.2 THEN true \n    ELSE false \n  END AS UA\nFROM Laboratory\nWHERE ID = 57266\nLIMIT 1;",
+              "latency_ms": 3489.43
+            },
+            "execute": {
+              "success": true,
+              "status": "success",
+              "latency_ms": 0.21
+            },
+            "validator": {
+              "passed": true,
+              "retries": 0,
+              "latency_ms": 3431.62
+            },
+            "analysis": {
+              "answer": "Yes, the patient's uric acid level is within the normal range. The check confirmed that it falls between 3.5 and 7.2, as indicated by the result showing \"1.\"",
+              "latency_ms": 2303.33
+            }
+          },
+          "generated_sql": "SELECT \n  CASE \n    WHEN CAST(UA AS FLOAT) BETWEEN 3.5 AND 7.2 THEN true \n    ELSE false \n  END AS UA\nFROM Laboratory\nWHERE ID = 57266\nLIMIT 1;",
+          "passed": false,
+          "error": "Results do not match",
+          "total_latency_ms": 22735.51,
+          "gold_results": [
+            [
+              0
+            ],
+            [
+              0
+            ],
+            [
+              0
+            ],
+            [
+              0
+            ],
+            [
+              0
+            ]
+          ],
+          "generated_results": [
+            [
+              1
+            ]
+          ]
+        },
+        {
+          "id": "bird:validation:bird:validation:101:0",
+          "db_id": "thrombosis_prediction",
+          "question": "Provide IDs for male patients with ALT glutamic pylvic transaminase (GPT) that have history of ALT glutamic pylvic transaminase (GPT) exceed the normal range.",
+          "gold_sql": "SELECT DISTINCT T1.ID FROM Patient AS T1 INNER JOIN Laboratory AS T2 ON T1.ID = T2.ID WHERE T1.SEX = 'M' AND T2.GPT >= 60",
+          "difficulty": "moderate",
+          "steps": {
+            "gatekeeper": {
+              "is_legal": true,
+              "latency_ms": 3501.17
+            },
+            "organizer": {
+              "tables": [
+                "Patient",
+                "Laboratory"
+              ],
+              "fields": [
+                "Patient.ID",
+                "Patient.SEX",
+                "Laboratory.GPT"
+              ],
+              "joins_count": 1,
+              "latency_ms": 7297.3
+            },
+            "planner": {
+              "plan": "1. SELECT the Patient.ID field (using DISTINCT to avoid duplicate IDs if there are multiple laboratory records per patient).  \n2. FROM the Patient table and the Laboratory table.  \n3. JOIN the tables with an INNER JOIN on Patient.ID = Laboratory.ID.  \n4. Apply a WHERE filter to only include rows where Patient.SEX indicates a male (e.g., SEX = 'male') and where the Laboratory.GPT value exceeds the normal range (using the appropriate threshold value for GPT).  \n5. No GROUP BY is needed as we are simply filtering and selecting unique patient IDs.  \n6. No ORDER BY or LIMIT is required unless a specific ordering or restriction on the number of results is desired.",
+              "latency_ms": 5119.36
+            },
+            "clarifier": {
+              "clarification": {
+                "output_type": "list",
+                "output_description": "List of patient IDs for male patients who have at least one Laboratory record where GPT is above the normal range.",
+                "columns_to_return": [
+                  "ID"
+                ],
+                "calculation_needed": "none",
+                "calculation_details": "",
+                "key_constraints": [
+                  "Patient.SEX = 'male'",
+                  "Patient.ID = Laboratory.ID",
+                  "Laboratory.GPT > [upper normal limit]"
+                ]
+              },
+              "latency_ms": 4927.5
+            },
+            "writer": {
+              "sql": "SELECT DISTINCT Patient.ID\nFROM Patient\nINNER JOIN Laboratory ON Patient.ID = Laboratory.ID\nWHERE Patient.SEX = 'M'\n  AND Laboratory.GPT > 40;",
+              "latency_ms": 4787.73
+            },
+            "execute": {
+              "success": true,
+              "status": "success",
+              "latency_ms": 0.81
+            },
+            "validator": {
+              "passed": true,
+              "retries": 0,
+              "latency_ms": 5644.42
+            },
+            "analysis": {
+              "answer": "We found 38 male patients whose ALT (GPT) levels exceeded the normal threshold of 40. Some of these patient IDs include 57,266; 81,043; 444,499; 485,308; 915,768; 1,137,040; 1,491,832; 1,506,424; 1,513,136; 1,618,929; 1,942,213; 2,073,196; 2,083,458; 2,256,779; 2,307,640; 2,405,722; 3,182,521; 3,299,630; 3,362,815; and 3,403,961, with 18 additional IDs found. These patients have a history of ALT GPT levels beyond the normal range.",
+              "latency_ms": 5039.29
+            }
+          },
+          "generated_sql": "SELECT DISTINCT Patient.ID\nFROM Patient\nINNER JOIN Laboratory ON Patient.ID = Laboratory.ID\nWHERE Patient.SEX = 'M'\n  AND Laboratory.GPT > 40;",
+          "passed": false,
+          "error": "Results do not match",
+          "total_latency_ms": 36338.68,
+          "gold_results": [
+            [
+              81043
+            ],
+            [
+              444499
+            ],
+            [
+              915768
+            ],
+            [
+              1137040
+            ],
+            [
+              1513136
+            ]
+          ],
+          "generated_results": [
+            [
+              57266
+            ],
+            [
+              81043
+            ],
+            [
+              444499
+            ],
+            [
+              485308
+            ],
+            [
+              915768
+            ]
+          ]
+        }
+      ]
+    },
+    "spider": {
+      "summary": {
+        "total": 5,
+        "passed": 4,
+        "failed": 1,
+        "accuracy": 0.8,
+        "avg_latency_ms": 21068.96,
+        "min_latency_ms": 13726.1,
+        "max_latency_ms": 44572.87
+      },
+      "details": [
+        {
+          "id": "spider:validation:spider:validation:0:0",
+          "db_id": "concert_singer",
+          "question": "How many singers do we have?",
+          "gold_sql": "SELECT count(*) FROM singer",
+          "difficulty": null,
+          "steps": {
+            "gatekeeper": {
+              "is_legal": true,
+              "latency_ms": 1412.33
+            },
+            "organizer": {
+              "tables": [
+                "singer"
+              ],
+              "fields": [
+                "singer.Singer_ID"
+              ],
+              "joins_count": 0,
+              "latency_ms": 1936.66
+            },
+            "planner": {
+              "plan": "1. SELECT the count of singer records using an aggregation function (COUNT).\n2. FROM the \"singer\" table.\n3. No JOIN conditions are needed.\n4. No WHERE filters are necessary.\n5. No GROUP BY clause is required.\n6. No ORDER BY clause is needed.\n7. No LIMIT is needed.",
+              "latency_ms": 1642.52
+            },
+            "clarifier": {
+              "clarification": {
+                "output_type": "single_value",
+                "output_description": "Return the count of singers in the singer table.",
+                "columns_to_return": [
+                  "Singer_ID"
+                ],
+                "calculation_needed": "count",
+                "calculation_details": "Count the number of rows in the 'singer' table.",
+                "key_constraints": []
+              },
+              "latency_ms": 2314.21
+            },
+            "writer": {
+              "sql": "SELECT COUNT(CASE WHEN Singer_ID IS NOT NULL THEN 1 ELSE NULL END) AS Singer_ID\nFROM singer;",
+              "latency_ms": 2834.85
+            },
+            "execute": {
+              "success": true,
+              "status": "success",
+              "latency_ms": 0.18
+            },
+            "validator": {
+              "passed": true,
+              "retries": 0,
+              "latency_ms": 2937.41
+            },
+            "analysis": {
+              "answer": "There are 6 singers in total.",
+              "latency_ms": 1841.63
+            }
+          },
+          "generated_sql": "SELECT COUNT(CASE WHEN Singer_ID IS NOT NULL THEN 1 ELSE NULL END) AS Singer_ID\nFROM singer;",
+          "passed": true,
+          "error": null,
+          "total_latency_ms": 14920.96,
+          "gold_results": [
+            [
+              6
+            ]
+          ],
+          "generated_results": [
+            [
+              6
+            ]
+          ]
+        },
+        {
+          "id": "spider:validation:spider:validation:1:0",
+          "db_id": "concert_singer",
+          "question": "What is the total number of singers?",
+          "gold_sql": "SELECT count(*) FROM singer",
+          "difficulty": null,
+          "steps": {
+            "gatekeeper": {
+              "is_legal": true,
+              "latency_ms": 1556.67
+            },
+            "organizer": {
+              "tables": [
+                "singer"
+              ],
+              "fields": [
+                "singer.Singer_ID"
+              ],
+              "joins_count": 0,
+              "latency_ms": 1826.14
+            },
+            "planner": {
+              "plan": "1. SELECT the COUNT of the singer.Singer_ID field to get the total number of singers.\n2. FROM the singer table.\n3. No JOIN conditions are needed.\n4. No WHERE filters are needed.\n5. No GROUP BY clause is needed.\n6. No ORDER BY clause is needed.\n7. No LIMIT clause is needed.",
+              "latency_ms": 1736.8
+            },
+            "clarifier": {
+              "clarification": {
+                "output_type": "single_value",
+                "output_description": "Return the total count of singers from the singer table",
+                "columns_to_return": [
+                  "total_singers"
+                ],
+                "calculation_needed": "count",
+                "calculation_details": "Count all rows in the singer table",
+                "key_constraints": []
+              },
+              "latency_ms": 2356.23
+            },
+            "writer": {
+              "sql": "SELECT COUNT(CASE WHEN Singer_ID IS NOT NULL THEN 1 END) AS total_singers\nFROM singer;",
+              "latency_ms": 1968.71
+            },
+            "execute": {
+              "success": true,
+              "status": "success",
+              "latency_ms": 0.33
+            },
+            "validator": {
+              "passed": true,
+              "retries": 0,
+              "latency_ms": 3047.62
+            },
+            "analysis": {
+              "answer": "There are a total of 6 singers.",
+              "latency_ms": 1231.98
+            }
+          },
+          "generated_sql": "SELECT COUNT(CASE WHEN Singer_ID IS NOT NULL THEN 1 END) AS total_singers\nFROM singer;",
+          "passed": true,
+          "error": null,
+          "total_latency_ms": 13726.1,
+          "gold_results": [
+            [
+              6
+            ]
+          ],
+          "generated_results": [
+            [
+              6
+            ]
+          ]
+        },
+        {
+          "id": "spider:validation:spider:validation:10:0",
+          "db_id": "concert_singer",
+          "question": "Show all countries and the number of singers in each country.",
+          "gold_sql": "SELECT country ,  count(*) FROM singer GROUP BY country",
+          "difficulty": null,
+          "steps": {
+            "gatekeeper": {
+              "is_legal": true,
+              "latency_ms": 2146.73
+            },
+            "organizer": {
+              "tables": [
+                "singer"
+              ],
+              "fields": [
+                "singer.Country",
+                "COUNT(singer.Singer_ID)"
+              ],
+              "joins_count": 0,
+              "latency_ms": 4096.19
+            },
+            "planner": {
+              "plan": "1. SELECT the singer.Country field and COUNT of singer IDs to get the number of singers per country.\n2. FROM the singer table.\n3. No JOINs are needed.\n4. No WHERE clause is required.\n5. GROUP BY the country field.\n6. No ORDER BY is specified.\n7. No LIMIT is needed.",
+              "latency_ms": 1496.21
+            },
+            "clarifier": {
+              "clarification": {
+                "output_type": "list",
+                "output_description": "A list of all countries with the count of singers from each country.",
+                "columns_to_return": [
+                  "Country",
+                  "singer_count"
+                ],
+                "calculation_needed": "count",
+                "calculation_details": "Count the number of singer records for each distinct country.",
+                "key_constraints": []
+              },
+              "latency_ms": 2904.83
+            },
+            "writer": {
+              "sql": "SELECT\n  Country,\n  COUNT(CASE WHEN Country IS NOT NULL THEN 1 END) AS singer_count\nFROM singer\nGROUP BY Country;",
+              "latency_ms": 2471.89
+            },
+            "execute": {
+              "success": true,
+              "status": "success",
+              "latency_ms": 0.33
+            },
+            "validator": {
+              "passed": true,
+              "retries": 0,
+              "latency_ms": 2957.65
+            },
+            "analysis": {
+              "answer": "The data shows that there are 4 singers from France, 1 singer from the Netherlands, and 1 singer from the United States.",
+              "latency_ms": 1825.57
+            }
+          },
+          "generated_sql": "SELECT\n  Country,\n  COUNT(CASE WHEN Country IS NOT NULL THEN 1 END) AS singer_count\nFROM singer\nGROUP BY Country;",
+          "passed": true,
+          "error": null,
+          "total_latency_ms": 17900.97,
+          "gold_results": [
+            [
+              "France",
+              4
+            ],
+            [
+              "Netherlands",
+              1
+            ],
+            [
+              "United States",
+              1
+            ]
+          ],
+          "generated_results": [
+            [
+              "France",
+              4
+            ],
+            [
+              "Netherlands",
+              1
+            ],
+            [
+              "United States",
+              1
+            ]
+          ]
+        },
+        {
+          "id": "spider:validation:spider:validation:100:0",
+          "db_id": "car_1",
+          "question": "What is the name of the different car makers who produced a car in 1970?",
+          "gold_sql": "SELECT DISTINCT T1.Maker FROM CAR_MAKERS AS T1 JOIN MODEL_LIST AS T2 ON T1.Id  =  T2.Maker JOIN CAR_NAMES AS T3 ON T2.model  =  T3.model JOIN CARS_DATA AS T4 ON T3.MakeId  =  T4.id WHERE T4.year  =  '1970';",
+          "difficulty": null,
+          "steps": {
+            "gatekeeper": {
+              "is_legal": true,
+              "latency_ms": 1551.83
+            },
+            "organizer": {
+              "tables": [
+                "cars_data",
+                "car_names"
+              ],
+              "fields": [
+                "cars_data.Year",
+                "car_names.Make"
+              ],
+              "joins_count": 1,
+              "latency_ms": 8292.39
+            },
+            "planner": {
+              "plan": "1. SELECT the distinct car maker names from the car_names table (i.e. the Make column).  \n2. FROM the cars_data table, which holds the Year information, and join it with the car_names table.  \n3. JOIN the two tables using the condition that cars_data.Id equals car_names.MakeId.  \n4. Apply a WHERE filter to select only rows where Year equals 1970.  \n5. Use DISTINCT in the SELECT clause to ensure that duplicate names are not returned.  \n6. (Optional) Order the results if a specific order is needed.  \n7. No GROUP BY or LIMIT clause is required unless additional result refinement is desired.",
+              "latency_ms": 3176.12
+            },
+            "clarifier": {
+              "clarification": {
+                "output_type": "list",
+                "output_description": "List of distinct car maker names who produced a car in 1970.",
+                "columns_to_return": [
+                  "Maker"
+                ],
+                "calculation_needed": "none",
+                "calculation_details": "",
+                "key_constraints": [
+                  "Year = 1970"
+                ]
+              },
+              "latency_ms": 5629.7
+            },
+            "writer": {
+              "sql": "SELECT DISTINCT car_names.Make AS Maker\nFROM cars_data\nJOIN car_names ON cars_data.Id = car_names.MakeId\nWHERE cars_data.Year = 1970;",
+              "latency_ms": 2400.36
+            },
+            "execute": {
+              "success": true,
+              "status": "success",
+              "latency_ms": 0.41
+            },
+            "validator": {
+              "passed": true,
+              "retries": 1,
+              "latency_ms": 0.01
+            },
+            "analysis": {
+              "answer": "The data indicates that no car makers produced a car in 1970 according to the available records.",
+              "latency_ms": 2016.12
+            }
+          },
+          "generated_sql": "SELECT DISTINCT cm.Maker AS Maker\nFROM cars_data cd\nJOIN car_names cn ON cd.Id = cn.ModelId\nJOIN car_makers cm ON cn.MakeId = cm.Id\nWHERE cd.Year = 1970;",
+          "passed": false,
+          "error": "Generated SQL failed: no such column: cn.ModelId",
+          "total_latency_ms": 44572.87,
+          "gold_results": [],
+          "generated_results": []
+        },
+        {
+          "id": "spider:validation:spider:validation:1000:0",
+          "db_id": "singer",
+          "question": "How many singers are there?",
+          "gold_sql": "SELECT count(*) FROM singer",
+          "difficulty": null,
+          "steps": {
+            "gatekeeper": {
+              "is_legal": true,
+              "latency_ms": 1746.42
+            },
+            "organizer": {
+              "tables": [
+                "singer"
+              ],
+              "fields": [
+                "singer.Singer_ID"
+              ],
+              "joins_count": 0,
+              "latency_ms": 2009.16
+            },
+            "planner": {
+              "plan": "1. SELECT the COUNT aggregate function to count the number of singer records.\n2. FROM the \"singer\" table.\n3. No JOIN conditions are needed.\n4. No WHERE filters are needed.\n5. No GROUP BY clause is needed.\n6. No ORDER BY clause is needed.\n7. No LIMIT clause is needed.",
+              "latency_ms": 1648.5
+            },
+            "clarifier": {
+              "clarification": {
+                "output_type": "single_value",
+                "output_description": "Return the total count of singers.",
+                "columns_to_return": [],
+                "calculation_needed": "count",
+                "calculation_details": "Count the number of rows in the singer table",
+                "key_constraints": []
+              },
+              "latency_ms": 2261.44
+            },
+            "writer": {
+              "sql": "SELECT COUNT(CASE WHEN Singer_ID IS NOT NULL THEN 1 END) FROM singer;",
+              "latency_ms": 2283.26
+            },
+            "execute": {
+              "success": true,
+              "status": "success",
+              "latency_ms": 0.33
+            },
+            "validator": {
+              "passed": true,
+              "retries": 0,
+              "latency_ms": 2836.2
+            },
+            "analysis": {
+              "answer": "There are 8 singers.",
+              "latency_ms": 1437.28
+            }
+          },
+          "generated_sql": "SELECT COUNT(CASE WHEN Singer_ID IS NOT NULL THEN 1 END) FROM singer;",
+          "passed": true,
+          "error": null,
+          "total_latency_ms": 14223.9,
+          "gold_results": [
+            [
+              8
+            ]
+          ],
+          "generated_results": [
+            [
+              8
+            ]
+          ]
+        }
+      ]
+    },
+    "cosql": {
+      "summary": {
+        "total_conversations": 5,
+        "total_turns": 18,
+        "passed_turns": 12,
+        "accuracy": 0.6667,
+        "avg_latency_ms": 70181.86
+      },
+      "details": [
+        {
+          "id": "cosql:validation:0",
+          "db_id": "car_1",
+          "query_goal": "Which companies have three or more models?",
+          "turns_count": 3,
+          "turns": [
+            {
+              "turn_index": 0,
+              "question": "How many car models are produced by each maker? List the count and the maker full name.",
+              "gold_sql": "SELECT Count ( * )  ,  T2.FullName  FROM MODEL_LIST AS T1 JOIN CAR_MAKERS AS T2 ON T1.Maker   =   T2.Id GROUP BY T2.id",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 1728.58
+                },
+                "organizer": {
+                  "tables": [
+                    "car_makers",
+                    "model_list"
+                  ],
+                  "joins_count": 1,
+                  "latency_ms": 4402.78
+                },
+                "planner": {
+                  "plan": "1. SELECT the maker's full name from car_makers (using car_makers.FullName) and count the number of models from model_list (using COUNT(model_list.Model)).\n2. FROM the model_list table.\n3. INNER JOIN ...",
+                  "latency_ms": 2487.25
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "list",
+                    "output_description": "Return a list of makers with the count of car models produced by each maker (using the maker full name).",
+                    "columns_to_return": [
+                      "FullName",
+                      "count"
+                    ],
+                    "calculation_needed": "count",
+                    "calculation_details": "For each maker (identified by FullName), count the number of car models produced.",
+                    "key_constraints": [
+                      "Join car_makers and car_names on car_makers.Id = car_names.MakeId",
+                      "Group by car_makers.Id"
+                    ]
+                  },
+                  "latency_ms": 4638.22
+                },
+                "writer": {
+                  "sql": "SELECT \n  car_makers.FullName, \n  COUNT(CASE WHEN model_list.Model IS NOT NULL THEN 1 END) AS count\nFROM model_list\nINNER JOIN car_makers ON car_makers.Maker = model_list.Maker\nGROUP BY car_makers.FullName;",
+                  "latency_ms": 2444.38
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.37
+                },
+                "analysis": {
+                  "answer": "There were no results returned, so we couldn\u2019t determine the number of car models for any maker from the available data....",
+                  "latency_ms": 1998.02
+                }
+              },
+              "generated_sql": "SELECT \n  car_makers.FullName, \n  COUNT(CASE WHEN model_list.Model IS NOT NULL THEN 1 END) AS count\nFROM model_list\nINNER JOIN car_makers ON car_makers.Maker = model_list.Maker\nGROUP BY car_makers.FullName;",
+              "passed": false,
+              "error": "Results do not match",
+              "latency_ms": 17700.1
+            },
+            {
+              "turn_index": 1,
+              "question": "Which models are the most popular?",
+              "gold_sql": "SELECT T1.model FROM MODEL_LIST AS T1 JOIN CAR_MAKERS AS T2 ON T1.Maker   =   T2.Id GROUP BY T2.id order by count ( * )  desc limit 1",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 2059.34
+                },
+                "organizer": {
+                  "tables": [
+                    "car_names"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 10330.28
+                },
+                "planner": {
+                  "plan": "1. SELECT the Model field and count the number of occurrences per model (as a measure of popularity).\n2. FROM the car_names table.\n3. No JOIN conditions are needed.\n4. No WHERE filters are required.\n5...",
+                  "latency_ms": 5227.82
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "list",
+                    "output_description": "Return a list of car models that appear most frequently (i.e. those with the maximum count across records, indicating their popularity)",
+                    "columns_to_return": [
+                      "Model"
+                    ],
+                    "calculation_needed": "count",
+                    "calculation_details": "Count the number of occurrences per model (by joining the appropriate table, e.g. model_list or car_names, with cars_data if applicable) and then select the model(s) having the highest count",
+                    "key_constraints": []
+                  },
+                  "latency_ms": 7775.61
+                },
+                "writer": {
+                  "sql": "SELECT Model\nFROM (\n  SELECT Model, COUNT(CASE WHEN Model IS NOT NULL THEN 1 END) AS model_count\n  FROM car_names\n  GROUP BY Model\n) AS sub\nWHERE model_count = (\n  SELECT MAX(model_count)\n  FROM (\n    SELECT Model, COUNT(CASE WHEN Model IS NOT NULL THEN 1 END) AS model_count\n    FROM car_names\n    GROUP BY Model\n  )\n);",
+                  "latency_ms": 4893.29
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.43
+                },
+                "analysis": {
+                  "answer": "The most popular car model is Ford....",
+                  "latency_ms": 1867.73
+                }
+              },
+              "generated_sql": "SELECT Model\nFROM (\n  SELECT Model, COUNT(CASE WHEN Model IS NOT NULL THEN 1 END) AS model_count\n  FROM car_names\n  GROUP BY Model\n) AS sub\nWHERE model_count = (\n  SELECT MAX(model_count)\n  FROM (\n    SELECT Model, COUNT(CASE WHEN Model IS NOT NULL THEN 1 END) AS model_count\n    FROM car_names\n    GROUP BY Model\n  )\n);",
+              "passed": false,
+              "error": "Results do not match",
+              "latency_ms": 32155.41
+            },
+            {
+              "turn_index": 2,
+              "question": "Which companies have three or more models?",
+              "gold_sql": "SELECT Count ( * )  ,  T2.FullName ,  T2.id FROM MODEL_LIST AS T1 JOIN CAR_MAKERS AS T2 ON T1.Maker   =   T2.Id GROUP BY T2.id having count ( * )   > =  3",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 1332.01
+                },
+                "organizer": {
+                  "tables": [
+                    "car_makers",
+                    "model_list"
+                  ],
+                  "joins_count": 1,
+                  "latency_ms": 8956.51
+                },
+                "planner": {
+                  "plan": "1. SELECT the company full name from the car_makers table and COUNT the number of models from the model_list table.\n2. FROM the model_list table.\n3. INNER JOIN the car_makers table on the condition th...",
+                  "latency_ms": 3061.15
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "list",
+                    "output_description": "List of companies that have three or more models",
+                    "columns_to_return": [
+                      "Maker"
+                    ],
+                    "calculation_needed": "count",
+                    "calculation_details": "Count the number of models for each company and return those with a count greater than or equal to three",
+                    "key_constraints": [
+                      "count(Model) >= 3"
+                    ]
+                  },
+                  "latency_ms": 2933.02
+                },
+                "writer": {
+                  "sql": "SELECT car_makers.Maker\nFROM model_list\nINNER JOIN car_makers ON car_makers.Maker = model_list.Maker\nGROUP BY car_makers.FullName\nHAVING COUNT(CASE WHEN model_list.Model IS NOT NULL THEN 1 END) >= 3;",
+                  "latency_ms": 5785.75
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.36
+                },
+                "analysis": {
+                  "answer": "Based on the data, there are no companies that have three or more models....",
+                  "latency_ms": 2629.46
+                }
+              },
+              "generated_sql": "SELECT car_makers.Maker\nFROM model_list\nINNER JOIN car_makers ON car_makers.Maker = model_list.Maker\nGROUP BY car_makers.FullName\nHAVING COUNT(CASE WHEN model_list.Model IS NOT NULL THEN 1 END) >= 3;",
+              "passed": false,
+              "error": "Gold SQL failed: near \"=\": syntax error",
+              "latency_ms": 24698.68
+            }
+          ],
+          "passed_count": 0,
+          "total_latency_ms": 74555.27,
+          "accuracy": 0.0
+        },
+        {
+          "id": "cosql:validation:1",
+          "db_id": "concert_singer",
+          "query_goal": "can you also  give number of concerts for each singer",
+          "turns_count": 2,
+          "turns": [
+            {
+              "turn_index": 0,
+              "question": "please list the singers | did you mean list their names? | yes",
+              "gold_sql": "SELECT name FROM singer",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 1658.26
+                },
+                "organizer": {
+                  "tables": [
+                    "singer"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 1964.09
+                },
+                "planner": {
+                  "plan": "1. SELECT the \"Name\" field from the singer table.\n2. FROM the \"singer\" table.\n3. No JOIN is needed.\n4. No WHERE clause is needed.\n5. No GROUP BY is needed.\n6. No ORDER BY is needed.\n7. No LIMIT is nee...",
+                  "latency_ms": 2144.49
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "list",
+                    "output_description": "List all singer names",
+                    "columns_to_return": [
+                      "Name"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "",
+                    "key_constraints": []
+                  },
+                  "latency_ms": 1828.94
+                },
+                "writer": {
+                  "sql": "SELECT Name\nFROM singer;",
+                  "latency_ms": 1499.45
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.2
+                },
+                "analysis": {
+                  "answer": "There are six singers in the database. Their names are:\n\u2022 Joe Sharp\n\u2022 Timbaland\n\u2022 Justin Brown\n\u2022 Rose White\n\u2022 John Nizinik\n\u2022 Tribal King...",
+                  "latency_ms": 1314.15
+                }
+              },
+              "generated_sql": "SELECT Name\nFROM singer;",
+              "passed": true,
+              "error": null,
+              "latency_ms": 10409.85
+            },
+            {
+              "turn_index": 1,
+              "question": "can you also  give number of concerts for each singer",
+              "gold_sql": "SELECT T2.name ,  count ( * )  FROM singer_in_concert AS T1 JOIN singer AS T2 ON T1.singer_id   =   T2.singer_id GROUP BY T2.singer_id",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 1905.17
+                },
+                "organizer": {
+                  "tables": [
+                    "singer",
+                    "singer_in_concert"
+                  ],
+                  "joins_count": 1,
+                  "latency_ms": 3399.41
+                },
+                "planner": {
+                  "plan": "1. SELECT singer.Name and an aggregate COUNT of concert_ID from the singer_in_concert table as the number of concerts.\n2. FROM the singer table.\n3. INNER JOIN the singer_in_concert table, matching sin...",
+                  "latency_ms": 1986.47
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "list",
+                    "output_description": "Return each singer's name along with a count of concerts they performed in.",
+                    "columns_to_return": [
+                      "Name",
+                      "concert_count"
+                    ],
+                    "calculation_needed": "count",
+                    "calculation_details": "For each singer, count the number of matching entries in the singer_in_concert table to get the number of concerts.",
+                    "key_constraints": []
+                  },
+                  "latency_ms": 3445.78
+                },
+                "writer": {
+                  "sql": "SELECT \n  singer.Name, \n  SUM(CASE WHEN singer_in_concert.concert_ID IS NOT NULL THEN 1 ELSE 0 END) AS concert_count\nFROM singer\nINNER JOIN singer_in_concert ON singer.Singer_ID = singer_in_concert.Singer_ID\nGROUP BY singer.Name;",
+                  "latency_ms": 2997.57
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.36
+                },
+                "analysis": {
+                  "answer": "Here's the breakdown of concerts by singer:\n\n\u2022 John Nizinik performed in 2 concerts.\n\u2022 Justin Brown performed in 3 concerts.\n\u2022 Rose White performed in 1 concert.\n\u2022 Timbaland performed in 2 concerts.\n\u2022...",
+                  "latency_ms": 1210.37
+                }
+              },
+              "generated_sql": "SELECT \n  singer.Name, \n  SUM(CASE WHEN singer_in_concert.concert_ID IS NOT NULL THEN 1 ELSE 0 END) AS concert_count\nFROM singer\nINNER JOIN singer_in_concert ON singer.Singer_ID = singer_in_concert.Singer_ID\nGROUP BY singer.Name;",
+              "passed": true,
+              "error": null,
+              "latency_ms": 14945.63
+            }
+          ],
+          "passed_count": 2,
+          "total_latency_ms": 25356.79,
+          "accuracy": 1.0
+        },
+        {
+          "id": "cosql:validation:10",
+          "db_id": "employee_hire_evaluation",
+          "query_goal": "What is the shop ID number?",
+          "turns_count": 5,
+          "turns": [
+            {
+              "turn_index": 0,
+              "question": "Which district has the largest number of products?",
+              "gold_sql": "SELECT district FROM shop ORDER BY number_products DESC LIMIT 1",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 1895.97
+                },
+                "organizer": {
+                  "tables": [
+                    "shop"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 3658.05
+                },
+                "planner": {
+                  "plan": "1. SELECT the \"District\" field and compute the total products using SUM on \"Number_products\" (alias it, e.g., as total_products).\n2. FROM the \"shop\" table.\n3. There is no need for any JOIN conditions....",
+                  "latency_ms": 5214.82
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "single_row",
+                    "output_description": "Return the district that has the highest number of products in the shop table",
+                    "columns_to_return": [
+                      "District"
+                    ],
+                    "calculation_needed": "max",
+                    "calculation_details": "Find the district corresponding to the maximum value in the Number_products column",
+                    "key_constraints": []
+                  },
+                  "latency_ms": 4810.9
+                },
+                "writer": {
+                  "sql": "SELECT District\nFROM shop\nGROUP BY District\nORDER BY SUM(CASE WHEN Number_products >= 0 THEN Number_products ELSE 0 END) DESC\nLIMIT 1;",
+                  "latency_ms": 3071.79
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.41
+                },
+                "analysis": {
+                  "answer": "The district with the largest number of products is Lahden Stadion....",
+                  "latency_ms": 2172.75
+                }
+              },
+              "generated_sql": "SELECT District\nFROM shop\nGROUP BY District\nORDER BY SUM(CASE WHEN Number_products >= 0 THEN Number_products ELSE 0 END) DESC\nLIMIT 1;",
+              "passed": true,
+              "error": null,
+              "latency_ms": 20824.93
+            },
+            {
+              "turn_index": 1,
+              "question": "What is the manager's name of that shop?",
+              "gold_sql": "SELECT manager_name FROM shop ORDER BY number_products DESC LIMIT 1",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 1968.28
+                },
+                "organizer": {
+                  "tables": [
+                    "shop"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 4881.73
+                },
+                "planner": {
+                  "plan": "1. SELECT the Manager_name field.\n2. FROM the shop table.\n3. In the WHERE clause, filter for the shop whose Number_products is equal to the maximum Number_products found in the shop table (using a sub...",
+                  "latency_ms": 7054.03
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "single_value",
+                    "output_description": "Return the manager's name of the specified shop",
+                    "columns_to_return": [
+                      "Manager_name"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "No calculation needed, simply retrieve the value",
+                    "key_constraints": [
+                      "filter on the specific shop (e.g., Shop_ID or Name as provided in context)"
+                    ]
+                  },
+                  "latency_ms": 3959.62
+                },
+                "writer": {
+                  "sql": "SELECT Manager_name\nFROM shop\nWHERE Number_products = (SELECT MAX(Number_products) FROM shop)\nLIMIT 1;",
+                  "latency_ms": 1878.56
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.3
+                },
+                "analysis": {
+                  "answer": "The manager of the shop is Ilkka M\u00e4kel\u00e4....",
+                  "latency_ms": 1828.32
+                }
+              },
+              "generated_sql": "SELECT Manager_name\nFROM shop\nWHERE Number_products = (SELECT MAX(Number_products) FROM shop)\nLIMIT 1;",
+              "passed": true,
+              "error": null,
+              "latency_ms": 21571.14
+            },
+            {
+              "turn_index": 2,
+              "question": "How many products did he produce at that shop?",
+              "gold_sql": "SELECT number_products FROM shop ORDER BY number_products DESC LIMIT 1",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 3257.76
+                },
+                "organizer": {
+                  "tables": [
+                    "shop"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 5534.98
+                },
+                "planner": {
+                  "plan": "1. SELECT the Number_products field from the shop table.\n2. FROM the shop table.\n3. Use a WHERE filter to select the shop whose Manager_name matches the manager identified in the previous query (i.e. ...",
+                  "latency_ms": 7991.99
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "single_value",
+                    "output_description": "Return the number of products produced by the shop where the specified employee works.",
+                    "columns_to_return": [
+                      "Number_products"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "Directly retrieve the 'Number_products' value from the shop record associated with the employee.",
+                    "key_constraints": [
+                      "Join hiring and shop on Shop_ID",
+                      "Filter using the employee's identifier (i.e., his Employee_ID)"
+                    ]
+                  },
+                  "latency_ms": 9820.93
+                },
+                "writer": {
+                  "sql": "SELECT Number_products\nFROM shop\nWHERE Manager_name = (\n  SELECT s.Manager_name\n  FROM shop s\n  JOIN hiring h ON s.Shop_ID = h.Shop_ID\n  JOIN employee e ON h.Employee_ID = e.Employee_ID\n  WHERE e.Name = 'George Chuter'\n  LIMIT 1\n)\nLIMIT 1;",
+                  "latency_ms": 9044.53
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.38
+                },
+                "analysis": {
+                  "answer": "The shop produced 3,516 products....",
+                  "latency_ms": 2147.57
+                }
+              },
+              "generated_sql": "SELECT Number_products\nFROM shop\nWHERE Manager_name = (\n  SELECT s.Manager_name\n  FROM shop s\n  JOIN hiring h ON s.Shop_ID = h.Shop_ID\n  JOIN employee e ON h.Employee_ID = e.Employee_ID\n  WHERE e.Name = 'George Chuter'\n  LIMIT 1\n)\nLIMIT 1;",
+              "passed": false,
+              "error": "Results do not match",
+              "latency_ms": 37798.5
+            },
+            {
+              "turn_index": 3,
+              "question": "Where is the location of that district?",
+              "gold_sql": "SELECT location FROM shop ORDER BY number_products DESC LIMIT 1",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 2272.22
+                },
+                "organizer": {
+                  "tables": [
+                    "shop"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 4510.87
+                },
+                "planner": {
+                  "plan": "1. Write a subquery that groups the shop table by district and orders the districts by the total number of products (using SUM(Number_products)) in descending order, then limits the result to extract ...",
+                  "latency_ms": 9601.46
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "single_value",
+                    "output_description": "Return the location from the shop table where the district matches the specified district.",
+                    "columns_to_return": [
+                      "Location"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "No calculation is performed; directly return the Location column.",
+                    "key_constraints": [
+                      "District = 'that district'"
+                    ]
+                  },
+                  "latency_ms": 3347.04
+                },
+                "writer": {
+                  "sql": "SELECT Location\nFROM shop\nWHERE District = (\n  SELECT District\n  FROM shop\n  GROUP BY District\n  ORDER BY SUM(Number_products) DESC\n  LIMIT 1\n)\nLIMIT 1;",
+                  "latency_ms": 2374.87
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.21
+                },
+                "analysis": {
+                  "answer": "The district is located in Lahti. Based on the data, the district with the highest total number of products is in Lahti....",
+                  "latency_ms": 1957.05
+                }
+              },
+              "generated_sql": "SELECT Location\nFROM shop\nWHERE District = (\n  SELECT District\n  FROM shop\n  GROUP BY District\n  ORDER BY SUM(Number_products) DESC\n  LIMIT 1\n)\nLIMIT 1;",
+              "passed": true,
+              "error": null,
+              "latency_ms": 24064.02
+            },
+            {
+              "turn_index": 4,
+              "question": "What is the shop ID number?",
+              "gold_sql": "SELECT shop_ID FROM shop ORDER BY number_products DESC LIMIT 1",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 1581.97
+                },
+                "organizer": {
+                  "tables": [
+                    "shop"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 3584.0
+                },
+                "planner": {
+                  "plan": "1. In the main query, we need to select the Shop_ID from the shop table.\n2. We must restrict the result to the shop located in the district that was determined to have the largest number of products.\n...",
+                  "latency_ms": 9096.17
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "single_value",
+                    "output_description": "Return the shop's unique identifier (Shop_ID) from the shop table",
+                    "columns_to_return": [
+                      "Shop_ID"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "none",
+                    "key_constraints": []
+                  },
+                  "latency_ms": 2633.43
+                },
+                "writer": {
+                  "sql": "SELECT Shop_ID\nFROM shop\nWHERE District = (\n  SELECT District\n  FROM shop\n  GROUP BY District\n  ORDER BY SUM(Number_products) DESC\n  LIMIT 1\n)\nORDER BY Number_products DESC\nLIMIT 1;",
+                  "latency_ms": 2302.42
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.32
+                },
+                "analysis": {
+                  "answer": "The shop ID number is 8....",
+                  "latency_ms": 1791.47
+                }
+              },
+              "generated_sql": "SELECT Shop_ID\nFROM shop\nWHERE District = (\n  SELECT District\n  FROM shop\n  GROUP BY District\n  ORDER BY SUM(Number_products) DESC\n  LIMIT 1\n)\nORDER BY Number_products DESC\nLIMIT 1;",
+              "passed": true,
+              "error": null,
+              "latency_ms": 20990.22
+            }
+          ],
+          "passed_count": 4,
+          "total_latency_ms": 125249.68,
+          "accuracy": 0.8
+        },
+        {
+          "id": "cosql:validation:100",
+          "db_id": "car_1",
+          "query_goal": "What are the id and names of the countries which have more than 3 car makers or produce the 'fiat' model ?",
+          "turns_count": 4,
+          "turns": [
+            {
+              "turn_index": 0,
+              "question": "tell me the FullName of the maker amc",
+              "gold_sql": "SELECT Fullname FROM car_makers WHERE maker  =  \"amc\"",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 1432.05
+                },
+                "organizer": {
+                  "tables": [
+                    "car_makers"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 1744.98
+                },
+                "planner": {
+                  "plan": "1. SELECT the FullName field from the car_makers table.\n2. FROM the car_makers table.\n3. No JOIN is needed.\n4. Apply a WHERE filter to select only the row where the Maker field equals \"amc\".\n5. GROUP ...",
+                  "latency_ms": 2430.69
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "single_value",
+                    "output_description": "Return the FullName of the car maker whose Maker value is 'amc'.",
+                    "columns_to_return": [
+                      "FullName"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "",
+                    "key_constraints": [
+                      "Maker = 'amc'"
+                    ]
+                  },
+                  "latency_ms": 2716.99
+                },
+                "writer": {
+                  "sql": "SELECT FullName\nFROM car_makers\nWHERE Maker = 'amc';",
+                  "latency_ms": 2273.27
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.29
+                },
+                "analysis": {
+                  "answer": "The FullName for the maker \"amc\" is \"American Motor Company.\"...",
+                  "latency_ms": 1482.99
+                }
+              },
+              "generated_sql": "SELECT FullName\nFROM car_makers\nWHERE Maker = 'amc';",
+              "passed": true,
+              "error": null,
+              "latency_ms": 12081.62
+            },
+            {
+              "turn_index": 1,
+              "question": "Tell me CountryName for Countryid  1, 2, and 3.",
+              "gold_sql": "SELECT countryname FROM countries WHERE countryid = 1 or countryid = 2 or countryid = 3 ) ",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 1643.37
+                },
+                "organizer": {
+                  "tables": [
+                    "countries"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 1625.97
+                },
+                "planner": {
+                  "plan": "1. SELECT the field CountryName.\n2. FROM the table countries.\n3. Apply a WHERE filter to select rows where CountryId is 1, 2, or 3.\n4. No joins, GROUP BY, ORDER BY, or LIMIT clauses are needed....",
+                  "latency_ms": 1895.05
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "list",
+                    "output_description": "List of CountryName values for rows in the 'countries' table where CountryId is 1, 2, or 3",
+                    "columns_to_return": [
+                      "CountryName"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "",
+                    "key_constraints": [
+                      "CountryId IN (1, 2, 3)"
+                    ]
+                  },
+                  "latency_ms": 2854.02
+                },
+                "writer": {
+                  "sql": "SELECT CountryName\nFROM countries\nWHERE CountryId IN (1, 2, 3);",
+                  "latency_ms": 1829.95
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.19
+                },
+                "analysis": {
+                  "answer": "For CountryID 1, the corresponding country is \"usa\"; for CountryID 2, it is \"germany\"; and for CountryID 3, it is \"france.\"...",
+                  "latency_ms": 2632.65
+                }
+              },
+              "generated_sql": "SELECT CountryName\nFROM countries\nWHERE CountryId IN (1, 2, 3);",
+              "passed": true,
+              "error": null,
+              "latency_ms": 12481.65
+            },
+            {
+              "turn_index": 2,
+              "question": "Tell me the model id made by amc...",
+              "gold_sql": "SELECT modelid FROM model_list WHERE model  =  \"amc\"",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 1867.2
+                },
+                "organizer": {
+                  "tables": [
+                    "model_list"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 2444.93
+                },
+                "planner": {
+                  "plan": "1. SELECT the \"ModelId\" column from the \"model_list\" table.\n2. FROM the \"model_list\" table.\n3. Apply a WHERE filter to select rows where the \"Maker\" is 'amc'.\n4. No JOINs, GROUP BY, ORDER BY, or LIMIT...",
+                  "latency_ms": 1823.28
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "list",
+                    "output_description": "List of ModelId from model_list where the Maker is 'amc'",
+                    "columns_to_return": [
+                      "ModelId"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "",
+                    "key_constraints": [
+                      "Maker = 'amc'"
+                    ]
+                  },
+                  "latency_ms": 3604.44
+                },
+                "writer": {
+                  "sql": "SELECT ModelId\nFROM model_list\nWHERE Maker = 'amc';",
+                  "latency_ms": 2354.77
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.32
+                },
+                "analysis": {
+                  "answer": "There are no model IDs listed under the maker \"amc\" in the data....",
+                  "latency_ms": 1720.53
+                }
+              },
+              "generated_sql": "SELECT ModelId\nFROM model_list\nWHERE Maker = 'amc';",
+              "passed": false,
+              "error": "Results do not match",
+              "latency_ms": 13815.85
+            },
+            {
+              "turn_index": 3,
+              "question": "What are the id and names of the countries which have more than 3 car makers or produce the 'fiat' model ?",
+              "gold_sql": "SELECT T1.countryId ,  T1.CountryName FROM Countries AS T1 JOIN CAR_MAKERS AS T2 ON T1.CountryId   =   T2.Country GROUP BY T1.countryId HAVING count ( * )   >  3 UNION SELECT T1.countryId ,  T1.CountryName FROM Countries AS T1 JOIN CAR_MAKERS AS T2 ON T1.CountryId   =   T2.Country JOIN MODEL_LIST AS T3 ON T2.Id   =   T3.Maker WHERE T3.Model   =   'fiat'",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 1757.22
+                },
+                "organizer": {
+                  "tables": [
+                    "countries",
+                    "car_makers",
+                    "model_list"
+                  ],
+                  "joins_count": 2,
+                  "latency_ms": 10230.31
+                },
+                "planner": {
+                  "plan": "1. SELECT the country id (countries.CountryId) and country name (countries.CountryName).\n2. FROM the countries table as the primary source.\n3. LEFT JOIN the car_makers table on countries.CountryId = c...",
+                  "latency_ms": 5960.41
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "list",
+                    "output_description": "List the id and name of countries that either have more than 3 car makers or have at least one car that produces the 'fiat' model.",
+                    "columns_to_return": [
+                      "CountryId",
+                      "CountryName"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "No aggregated calculation is required, but a count of car makers per country must exceed 3 if that condition is used.",
+                    "key_constraints": [
+                      "Countries where the count of related car_makers (using Country field) is greater than 3",
+                      "OR countries that have at least one associated car model (from model_list or car_names) with Model = 'fiat'"
+                    ]
+                  },
+                  "latency_ms": 5002.45
+                },
+                "writer": {
+                  "sql": "SELECT countries.CountryId, countries.CountryName\nFROM countries\nLEFT JOIN car_makers ON countries.CountryId = car_makers.Country\nLEFT JOIN model_list ON car_makers.Maker = model_list.Maker\nGROUP BY countries.CountryId, countries.CountryName\nHAVING COUNT(DISTINCT car_makers.Maker) > 3 \n   OR COUNT(CASE WHEN model_list.Model = 'fiat' THEN 1 END) > 0;",
+                  "latency_ms": 2233.81
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.36
+                },
+                "analysis": {
+                  "answer": "The query found three countries. The USA (ID 1), Germany (ID 2), and Japan (ID 4) all either have more than 3 car makers or produce the 'fiat' model....",
+                  "latency_ms": 2789.19
+                }
+              },
+              "generated_sql": "SELECT countries.CountryId, countries.CountryName\nFROM countries\nLEFT JOIN car_makers ON countries.CountryId = car_makers.Country\nLEFT JOIN model_list ON car_makers.Maker = model_list.Maker\nGROUP BY countries.CountryId, countries.CountryName\nHAVING COUNT(DISTINCT car_makers.Maker) > 3 \n   OR COUNT(CASE WHEN model_list.Model = 'fiat' THEN 1 END) > 0;",
+              "passed": false,
+              "error": "Results do not match",
+              "latency_ms": 27974.29
+            }
+          ],
+          "passed_count": 2,
+          "total_latency_ms": 66354.94,
+          "accuracy": 0.5
+        },
+        {
+          "id": "cosql:validation:101",
+          "db_id": "poker_player",
+          "query_goal": "And what is the highest earning?",
+          "turns_count": 4,
+          "turns": [
+            {
+              "turn_index": 0,
+              "question": "What is the money rank of the poker player with the highest earnings?",
+              "gold_sql": "SELECT Money_Rank FROM poker_player ORDER BY Earnings DESC LIMIT 1",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 2661.9
+                },
+                "organizer": {
+                  "tables": [
+                    "poker_player"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 5017.81
+                },
+                "planner": {
+                  "plan": "1. SELECT the Money_Rank field.\n2. FROM the poker_player table.\n3. No JOIN conditions are needed.\n4. No WHERE filters are needed.\n5. No GROUP BY is needed.\n6. ORDER BY Earnings in descending order.\n7....",
+                  "latency_ms": 2256.04
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "single_value",
+                    "output_description": "Returns the Money_Rank of the poker player who has the highest Earnings.",
+                    "columns_to_return": [
+                      "Money_Rank"
+                    ],
+                    "calculation_needed": "max",
+                    "calculation_details": "Identify the row in poker_player with the maximum Earnings and return its Money_Rank.",
+                    "key_constraints": [
+                      "Earnings is maximum"
+                    ]
+                  },
+                  "latency_ms": 4285.88
+                },
+                "writer": {
+                  "sql": "SELECT Money_Rank\nFROM poker_player\nORDER BY Earnings DESC\nLIMIT 1;",
+                  "latency_ms": 2367.33
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.69
+                },
+                "analysis": {
+                  "answer": "The highest-earning poker player's money rank is 58.0....",
+                  "latency_ms": 1503.07
+                }
+              },
+              "generated_sql": "SELECT Money_Rank\nFROM poker_player\nORDER BY Earnings DESC\nLIMIT 1;",
+              "passed": true,
+              "error": null,
+              "latency_ms": 18093.9
+            },
+            {
+              "turn_index": 1,
+              "question": "What is the highest earner's people ID?",
+              "gold_sql": "SELECT People_ID FROM poker_player ORDER BY Earnings DESC LIMIT 1",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 1407.99
+                },
+                "organizer": {
+                  "tables": [
+                    "poker_player"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 3293.91
+                },
+                "planner": {
+                  "plan": "1. SELECT the People_ID field.\n2. FROM the poker_player table.\n3. No JOIN is needed.\n4. No WHERE filter is required.\n5. No GROUP BY is necessary.\n6. ORDER the results by Earnings in descending order s...",
+                  "latency_ms": 1986.2
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "single_row",
+                    "output_description": "Return the People_ID of the poker player with the highest earnings.",
+                    "columns_to_return": [
+                      "People_ID"
+                    ],
+                    "calculation_needed": "max",
+                    "calculation_details": "Select the People_ID associated with the maximum Earnings in the poker_player table.",
+                    "key_constraints": [
+                      "Use the maximum value of 'Earnings' from the 'poker_player' table"
+                    ]
+                  },
+                  "latency_ms": 3528.26
+                },
+                "writer": {
+                  "sql": "SELECT People_ID\nFROM poker_player\nORDER BY Earnings DESC\nLIMIT 1;",
+                  "latency_ms": 1857.93
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.53
+                },
+                "analysis": {
+                  "answer": "The highest earner's People ID is 6....",
+                  "latency_ms": 1372.95
+                }
+              },
+              "generated_sql": "SELECT People_ID\nFROM poker_player\nORDER BY Earnings DESC\nLIMIT 1;",
+              "passed": true,
+              "error": null,
+              "latency_ms": 13448.46
+            },
+            {
+              "turn_index": 2,
+              "question": "What was their best finish?",
+              "gold_sql": "SELECT Best_Finish FROM poker_player ORDER BY Earnings DESC LIMIT 1",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 1798.88
+                },
+                "organizer": {
+                  "tables": [
+                    "poker_player"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 2338.13
+                },
+                "planner": {
+                  "plan": "1. SELECT the \"Best_Finish\" field from the \"poker_player\" table.\n2. FROM the \"poker_player\" table.\n3. No JOIN is needed.\n4. Use an ORDER BY clause on the \"Earnings\" field in descending order to get th...",
+                  "latency_ms": 2519.83
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "single_value",
+                    "output_description": "Return the best finish record from the poker_player table.",
+                    "columns_to_return": [
+                      "Best_Finish"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "",
+                    "key_constraints": []
+                  },
+                  "latency_ms": 2991.7
+                },
+                "writer": {
+                  "sql": "SELECT Best_Finish\nFROM poker_player\nORDER BY Earnings DESC\nLIMIT 1;",
+                  "latency_ms": 2090.48
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.3
+                },
+                "analysis": {
+                  "answer": "Their best finish was 2.0, which means they achieved a 2nd-place finish....",
+                  "latency_ms": 2283.76
+                }
+              },
+              "generated_sql": "SELECT Best_Finish\nFROM poker_player\nORDER BY Earnings DESC\nLIMIT 1;",
+              "passed": true,
+              "error": null,
+              "latency_ms": 14023.38
+            },
+            {
+              "turn_index": 3,
+              "question": "And what is the highest earning?",
+              "gold_sql": "SELECT Earnings FROM poker_player order by Earnings desc limit 1",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 1640.17
+                },
+                "organizer": {
+                  "tables": [
+                    "poker_player"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 2744.87
+                },
+                "planner": {
+                  "plan": "1. SELECT the \"Earnings\" column.\n2. FROM the \"poker_player\" table.\n3. No JOINs are needed.\n4. No additional WHERE filters are needed.\n5. No GROUP BY clause is necessary.\n6. ORDER the results by \"Earni...",
+                  "latency_ms": 2648.45
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "single_value",
+                    "output_description": "Return the highest earning value from the poker_player earnings field",
+                    "columns_to_return": [
+                      "Earnings"
+                    ],
+                    "calculation_needed": "max",
+                    "calculation_details": "Maximum value of the Earnings column",
+                    "key_constraints": []
+                  },
+                  "latency_ms": 2621.38
+                },
+                "writer": {
+                  "sql": "SELECT Earnings\nFROM poker_player\nORDER BY Earnings DESC\nLIMIT 1;",
+                  "latency_ms": 2501.87
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.38
+                },
+                "analysis": {
+                  "answer": "The highest earning among the poker players is $596,462....",
+                  "latency_ms": 1668.19
+                }
+              },
+              "generated_sql": "SELECT Earnings\nFROM poker_player\nORDER BY Earnings DESC\nLIMIT 1;",
+              "passed": true,
+              "error": null,
+              "latency_ms": 13825.9
+            }
+          ],
+          "passed_count": 4,
+          "total_latency_ms": 59392.61,
+          "accuracy": 1.0
+        }
+      ]
+    },
+    "sparc": {
+      "summary": {
+        "total_conversations": 5,
+        "total_turns": 11,
+        "passed_turns": 4,
+        "accuracy": 0.3636,
+        "avg_latency_ms": 40987.49
+      },
+      "details": [
+        {
+          "id": "sparc:validation:0",
+          "db_id": "flight_2",
+          "query_goal": "What is the country corresponding it?",
+          "turns_count": 3,
+          "turns": [
+            {
+              "turn_index": 0,
+              "question": "What are all the airlines?",
+              "gold_sql": "SELECT * FROM AIRLINES",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 1755.38
+                },
+                "organizer": {
+                  "tables": [
+                    "airlines"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 1512.15
+                },
+                "planner": {
+                  "plan": "1. SELECT the \"Airline\" field from the \"airlines\" table.\n2. FROM the \"airlines\" table.\n3. No JOIN condition is needed.\n4. No WHERE filter is needed.\n5. No GROUP BY clause is needed.\n6. No ORDER BY cla...",
+                  "latency_ms": 2340.75
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "list",
+                    "output_description": "List all airline names from the airlines table.",
+                    "columns_to_return": [
+                      "Airline"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "",
+                    "key_constraints": []
+                  },
+                  "latency_ms": 2161.5
+                },
+                "writer": {
+                  "sql": "SELECT Airline\nFROM airlines;",
+                  "latency_ms": 1842.85
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.25
+                },
+                "analysis": {
+                  "answer": "There are 12 airlines in total. They are: United Airlines, US Airways, Delta Airlines, Southwest Airlines, American Airlines, Northwest Airlines, Continental Airlines, JetBlue Airways, Frontier Airlin...",
+                  "latency_ms": 1897.23
+                }
+              },
+              "generated_sql": "SELECT Airline\nFROM airlines;",
+              "passed": false,
+              "error": "Results do not match",
+              "latency_ms": 11510.53
+            },
+            {
+              "turn_index": 1,
+              "question": "Of these, which is Jetblue Airways?",
+              "gold_sql": "SELECT * FROM AIRLINES WHERE Airline  =  \"JetBlue Airways\"",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 2236.5
+                },
+                "organizer": {
+                  "tables": [
+                    "airlines"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 3024.51
+                },
+                "planner": {
+                  "plan": "1. SELECT the field \"Airline\" from the airlines table.  \n2. FROM the airlines table.  \n3. No JOIN conditions are needed since we only use one table.  \n4. Apply a WHERE filter: the \"Airline\" field must...",
+                  "latency_ms": 1943.23
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "single_row",
+                    "output_description": "Return the row from the airlines table where the Airline column is 'Jetblue Airways'.",
+                    "columns_to_return": [
+                      "uid",
+                      "Airline",
+                      "Abbreviation",
+                      "Country"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "",
+                    "key_constraints": [
+                      "Airline = 'Jetblue Airways'"
+                    ]
+                  },
+                  "latency_ms": 9448.99
+                },
+                "writer": {
+                  "sql": "SELECT uid, Airline, Abbreviation, Country\nFROM airlines\nWHERE Airline = 'Jetblue Airways';",
+                  "latency_ms": 2341.71
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.25
+                },
+                "analysis": {
+                  "answer": "There is no record for Jetblue Airways in the data provided. The query did not return any results, so we couldn't identify any corresponding entry for this airline....",
+                  "latency_ms": 1587.95
+                }
+              },
+              "generated_sql": "SELECT uid, Airline, Abbreviation, Country\nFROM airlines\nWHERE Airline = 'Jetblue Airways';",
+              "passed": false,
+              "error": "Results do not match",
+              "latency_ms": 20583.74
+            },
+            {
+              "turn_index": 2,
+              "question": "What is the country corresponding it?",
+              "gold_sql": "SELECT Country FROM AIRLINES WHERE Airline  =  \"JetBlue Airways\"",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 2072.77
+                },
+                "organizer": {
+                  "tables": [
+                    "airlines"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 1754.86
+                },
+                "planner": {
+                  "plan": "1. SELECT the \"Country\" field from the airlines table.\n2. FROM the \"airlines\" table.\n3. Apply a WHERE filter to select the record where \"Airline\" equals \"Jetblue Airways\"....",
+                  "latency_ms": 1689.31
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "single_value",
+                    "output_description": "Return the Country field for the entity in question. The query expects the country value corresponding to the given entity (for example an airline) based on its identifier.",
+                    "columns_to_return": [
+                      "Country"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "",
+                    "key_constraints": []
+                  },
+                  "latency_ms": 5726.21
+                },
+                "writer": {
+                  "sql": "SELECT Country\nFROM airlines\nWHERE Airline = 'Jetblue Airways';",
+                  "latency_ms": 2651.52
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.22
+                },
+                "analysis": {
+                  "answer": "We didn't find any data for Jetblue Airways, so there is no country information available from the results....",
+                  "latency_ms": 2775.93
+                }
+              },
+              "generated_sql": "SELECT Country\nFROM airlines\nWHERE Airline = 'Jetblue Airways';",
+              "passed": false,
+              "error": "Results do not match",
+              "latency_ms": 16671.43
+            }
+          ],
+          "passed_count": 0,
+          "total_latency_ms": 48766.56,
+          "accuracy": 0.0
+        },
+        {
+          "id": "sparc:validation:1",
+          "db_id": "flight_2",
+          "query_goal": "What is the abbreviation for Jetblue Airways?",
+          "turns_count": 2,
+          "turns": [
+            {
+              "turn_index": 0,
+              "question": "What are all the abbreviations?",
+              "gold_sql": "SELECT Abbreviation FROM AIRLINES",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 2110.84
+                },
+                "organizer": {
+                  "tables": [
+                    "airlines"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 2461.8
+                },
+                "planner": {
+                  "plan": "1. SELECT the field \"Abbreviation\" from the airlines table.\n2. FROM the table \"airlines\".\n3. No JOINs are necessary since all information is in one table.\n4. No WHERE clause is needed.\n5. No GROUP BY ...",
+                  "latency_ms": 1385.89
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "list",
+                    "output_description": "Return a list of all abbreviations from the airlines table (the Abbreviation column).",
+                    "columns_to_return": [
+                      "Abbreviation"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "",
+                    "key_constraints": []
+                  },
+                  "latency_ms": 4241.88
+                },
+                "writer": {
+                  "sql": "SELECT Abbreviation\nFROM airlines;",
+                  "latency_ms": 2010.42
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.32
+                },
+                "analysis": {
+                  "answer": "There are 12 airline abbreviations in total: UAL, USAir, Delta, Southwest, American, Northwest, Continental, JetBlue, Frontier, AirTran, Allegiant, and Virgin....",
+                  "latency_ms": 1817.77
+                }
+              },
+              "generated_sql": "SELECT Abbreviation\nFROM airlines;",
+              "passed": true,
+              "error": null,
+              "latency_ms": 14029.28
+            },
+            {
+              "turn_index": 1,
+              "question": "What is the abbreviation for Jetblue Airways?",
+              "gold_sql": "SELECT Abbreviation FROM AIRLINES WHERE Airline  =  \"JetBlue Airways\"",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 1660.82
+                },
+                "organizer": {
+                  "tables": [
+                    "airlines"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 2402.66
+                },
+                "planner": {
+                  "plan": "1. SELECT the \"Abbreviation\" field.\n2. FROM the \"airlines\" table.\n3. Apply a WHERE filter to select only rows where the \"Airline\" field equals \"Jetblue Airways\".\n4. No JOINs, GROUP BY, ORDER BY, or LI...",
+                  "latency_ms": 2285.6
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "single_value",
+                    "output_description": "Returns the abbreviation for Jetblue Airways from the airlines table.",
+                    "columns_to_return": [
+                      "Abbreviation"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "none",
+                    "key_constraints": [
+                      "Airline = 'Jetblue Airways'"
+                    ]
+                  },
+                  "latency_ms": 2604.23
+                },
+                "writer": {
+                  "sql": "SELECT Abbreviation\nFROM airlines\nWHERE Airline = 'Jetblue Airways';",
+                  "latency_ms": 1895.05
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.34
+                },
+                "analysis": {
+                  "answer": "I couldn\u2019t find any data for Jetblue Airways' abbreviation. The query returned zero results, so it appears that the dataset does not include an abbreviation for Jetblue Airways....",
+                  "latency_ms": 2172.52
+                }
+              },
+              "generated_sql": "SELECT Abbreviation\nFROM airlines\nWHERE Airline = 'Jetblue Airways';",
+              "passed": false,
+              "error": "Results do not match",
+              "latency_ms": 13021.56
+            }
+          ],
+          "passed_count": 1,
+          "total_latency_ms": 27053.57,
+          "accuracy": 0.5
+        },
+        {
+          "id": "sparc:validation:10",
+          "db_id": "flight_2",
+          "query_goal": "Of these, which has code 'AKO'?",
+          "turns_count": 2,
+          "turns": [
+            {
+              "turn_index": 0,
+              "question": "What are all the airport names?",
+              "gold_sql": "SELECT AirportName FROM AIRPORTS",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 1629.8
+                },
+                "organizer": {
+                  "tables": [
+                    "airports"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 1339.7
+                },
+                "planner": {
+                  "plan": "1. SELECT the field \"AirportName\" from the table.\n2. FROM the \"airports\" table.\n3. No JOINs are needed.\n4. No filtering (WHERE clause) is necessary.\n5. No grouping is required.\n6. No ordering is speci...",
+                  "latency_ms": 2040.94
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "list",
+                    "output_description": "Return a list of all airport names",
+                    "columns_to_return": [
+                      "AirportName"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "",
+                    "key_constraints": []
+                  },
+                  "latency_ms": 2817.04
+                },
+                "writer": {
+                  "sql": "SELECT AirportName\nFROM airports;",
+                  "latency_ms": 1435.87
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.41
+                },
+                "analysis": {
+                  "answer": "The query returned a list of airport names\u2014in total there are about 100 airports. For example, the first few names include \"Phillips AAF\", \"Municipal\", \"Dyess AFB\", \"Municipal\" (appearing more than on...",
+                  "latency_ms": 4707.96
+                }
+              },
+              "generated_sql": "SELECT AirportName\nFROM airports;",
+              "passed": true,
+              "error": null,
+              "latency_ms": 13973.14
+            },
+            {
+              "turn_index": 1,
+              "question": "Of these, which has code 'AKO'?",
+              "gold_sql": "SELECT AirportName FROM AIRPORTS WHERE AirportCode  =  \"AKO\"",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 2456.49
+                },
+                "organizer": {
+                  "tables": [
+                    "airports"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 3301.36
+                },
+                "planner": {
+                  "plan": "1. SELECT the airport name field (airports.AirportName).\n2. FROM the airports table.\n3. No joins are necessary.\n4. Apply a WHERE clause to filter for records with AirportCode equal to 'AKO'.\n5. No GRO...",
+                  "latency_ms": 2246.68
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "single_row",
+                    "output_description": "Return the airport from the airports table that has the AirportCode of 'AKO'.",
+                    "columns_to_return": [
+                      "AirportName"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "",
+                    "key_constraints": [
+                      "AirportCode = 'AKO'"
+                    ]
+                  },
+                  "latency_ms": 10923.0
+                },
+                "writer": {
+                  "sql": "SELECT AirportName\nFROM airports\nWHERE AirportCode = 'AKO';",
+                  "latency_ms": 1916.52
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.24
+                },
+                "analysis": {
+                  "answer": "The airport with the code 'AKO' is Colorado Plains Regional Airport....",
+                  "latency_ms": 1275.35
+                }
+              },
+              "generated_sql": "SELECT AirportName\nFROM airports\nWHERE AirportCode = 'AKO';",
+              "passed": true,
+              "error": null,
+              "latency_ms": 22119.96
+            }
+          ],
+          "passed_count": 2,
+          "total_latency_ms": 36094.02,
+          "accuracy": 1.0
+        },
+        {
+          "id": "sparc:validation:100",
+          "db_id": "world_1",
+          "query_goal": "Of those, which do not speak English?",
+          "turns_count": 2,
+          "turns": [
+            {
+              "turn_index": 0,
+              "question": "What are the country codes of all the countries?",
+              "gold_sql": "SELECT DISTINCT CountryCode FROM countrylanguage",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 1427.92
+                },
+                "organizer": {
+                  "tables": [
+                    "country"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 2437.14
+                },
+                "planner": {
+                  "plan": "1. SELECT the \"Code\" field.\n2. FROM the \"country\" table.\n3. No JOIN conditions are needed.\n4. No WHERE filters are required.\n5. No GROUP BY clause is necessary.\n6. No ORDER BY clause is specified.\n7. ...",
+                  "latency_ms": 2371.11
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "list",
+                    "output_description": "Return a list of country codes from the country table for all countries.",
+                    "columns_to_return": [
+                      "Code"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "",
+                    "key_constraints": []
+                  },
+                  "latency_ms": 2905.51
+                },
+                "writer": {
+                  "sql": "SELECT Code\nFROM country;",
+                  "latency_ms": 1711.13
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.62
+                },
+                "analysis": {
+                  "answer": "The query returned a list of country codes \u2013 a total of 239 codes. For example, some of the codes include ABW, AFG, AGO, AIA, ALB, AND, ANT, ARE, ARG, ARM, ASM, ATA, ATF, ATG, AUS, AUT, AZE, BDI, BEL,...",
+                  "latency_ms": 5732.33
+                }
+              },
+              "generated_sql": "SELECT Code\nFROM country;",
+              "passed": false,
+              "error": "Results do not match",
+              "latency_ms": 16587.47
+            },
+            {
+              "turn_index": 1,
+              "question": "Of those, which do not speak English?",
+              "gold_sql": "SELECT DISTINCT CountryCode FROM countrylanguage WHERE LANGUAGE ! =  \"English\"",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 3496.64
+                },
+                "organizer": {
+                  "tables": [
+                    "country",
+                    "countrylanguage"
+                  ],
+                  "joins_count": 1,
+                  "latency_ms": 10546.4
+                },
+                "planner": {
+                  "plan": "1. SELECT: Retrieve the distinct country codes from the country table.\n2. FROM: Use the country table as the main data source.\n3. JOIN: LEFT JOIN the countrylanguage table on country.Code = countrylan...",
+                  "latency_ms": 3881.62
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "list",
+                    "output_description": "Return a list of country names that do not have English as one of the languages spoken based on the countrylanguage table.",
+                    "columns_to_return": [
+                      "Name"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "No calculation, just filtering out countries that have any entry in countrylanguage with Language = 'English'",
+                    "key_constraints": [
+                      "The country must not have any record in countrylanguage with Language = 'English'"
+                    ]
+                  },
+                  "latency_ms": 7580.62
+                },
+                "writer": {
+                  "sql": "SELECT DISTINCT country.Name\nFROM country\nLEFT JOIN countrylanguage AS cl\n  ON country.Code = cl.CountryCode AND cl.Language = 'English'\nWHERE cl.Language IS NULL;",
+                  "latency_ms": 4187.2
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.62
+                },
+                "analysis": {
+                  "answer": "Based on the results, there are a total of 179 countries listed that do not have English spoken. A few of these include Afghanistan, Angola, Albania, Andorra, United Arab Emirates, Argentina, and Arme...",
+                  "latency_ms": 2404.14
+                }
+              },
+              "generated_sql": "SELECT DISTINCT country.Name\nFROM country\nLEFT JOIN countrylanguage AS cl\n  ON country.Code = cl.CountryCode AND cl.Language = 'English'\nWHERE cl.Language IS NULL;",
+              "passed": false,
+              "error": "Results do not match",
+              "latency_ms": 32098.88
+            }
+          ],
+          "passed_count": 0,
+          "total_latency_ms": 48687.67,
+          "accuracy": 0.0
+        },
+        {
+          "id": "sparc:validation:101",
+          "db_id": "world_1",
+          "query_goal": "Of those, which do not speak English?",
+          "turns_count": 2,
+          "turns": [
+            {
+              "turn_index": 0,
+              "question": "What are the country codes for countries which are not republics?",
+              "gold_sql": "SELECT Code FROM country WHERE GovernmentForm ! =  \"Republic\"",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 1687.59
+                },
+                "organizer": {
+                  "tables": [
+                    "country"
+                  ],
+                  "joins_count": 0,
+                  "latency_ms": 2234.98
+                },
+                "planner": {
+                  "plan": "1. SELECT the field country.Code.\n2. FROM the table country.\n3. Apply a WHERE condition to filter rows where country.GovernmentForm is not equal to 'Republic'.\n4. No JOIN, GROUP BY, ORDER BY, or LIMIT...",
+                  "latency_ms": 1839.41
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "list",
+                    "output_description": "List of country codes for countries whose GovernmentForm is not 'Republic'",
+                    "columns_to_return": [
+                      "Code"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "none",
+                    "key_constraints": [
+                      "GovernmentForm <> 'Republic'"
+                    ]
+                  },
+                  "latency_ms": 3400.67
+                },
+                "writer": {
+                  "sql": "SELECT Code\nFROM country\nWHERE GovernmentForm <> 'Republic';",
+                  "latency_ms": 2363.4
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.33
+                },
+                "analysis": {
+                  "answer": "There are 117 country codes in total for countries that are not republics. For example, some of the codes include ABW, AFG, AIA, AND, ANT, ARE, and ARG, among others. The full list includes these and ...",
+                  "latency_ms": 2831.81
+                }
+              },
+              "generated_sql": "SELECT Code\nFROM country\nWHERE GovernmentForm <> 'Republic';",
+              "passed": true,
+              "error": null,
+              "latency_ms": 14358.57
+            },
+            {
+              "turn_index": 1,
+              "question": "Of those, which do not speak English?",
+              "gold_sql": "SELECT Code FROM country WHERE GovernmentForm ! =  \"Republic\" EXCEPT SELECT CountryCode FROM countrylanguage WHERE LANGUAGE  =  \"English\"",
+              "steps": {
+                "gatekeeper": {
+                  "is_legal": true,
+                  "latency_ms": 3201.37
+                },
+                "organizer": {
+                  "tables": [
+                    "country",
+                    "countrylanguage"
+                  ],
+                  "joins_count": 1,
+                  "latency_ms": 9580.92
+                },
+                "planner": {
+                  "plan": "1. SELECT the country code from the country table.\n2. FROM the country table.\n3. Apply a WHERE filter to select only those countries whose GovernmentForm is not 'Republic'.\n4. Exclude countries that s...",
+                  "latency_ms": 4243.06
+                },
+                "clarifier": {
+                  "clarification": {
+                    "output_type": "list",
+                    "output_description": "A list of country names that do not have English as a language recorded in the countrylanguage table.",
+                    "columns_to_return": [
+                      "Name"
+                    ],
+                    "calculation_needed": "none",
+                    "calculation_details": "none",
+                    "key_constraints": [
+                      "Exclude any country for which a record exists in countrylanguage with Language = 'English'"
+                    ]
+                  },
+                  "latency_ms": 4624.04
+                },
+                "writer": {
+                  "sql": "SELECT Name\nFROM country\nWHERE GovernmentForm <> 'Republic'\n  AND (SELECT COUNT(CASE WHEN Language = 'English' THEN 1 END)\n       FROM countrylanguage\n       WHERE country.Code = countrylanguage.CountryCode) = 0;",
+                  "latency_ms": 3482.62
+                },
+                "execute": {
+                  "success": true,
+                  "latency_ms": 0.81
+                },
+                "analysis": {
+                  "answer": "The results show that there are 69 countries meeting the criteria. In other words, among the countries with non\u2010Republic government forms, 69 do not speak English at all. A few examples include Afghan...",
+                  "latency_ms": 4841.34
+                }
+              },
+              "generated_sql": "SELECT Name\nFROM country\nWHERE GovernmentForm <> 'Republic'\n  AND (SELECT COUNT(CASE WHEN Language = 'English' THEN 1 END)\n       FROM countrylanguage\n       WHERE country.Code = countrylanguage.CountryCode) = 0;",
+              "passed": false,
+              "error": "Results do not match",
+              "latency_ms": 29975.11
+            }
+          ],
+          "passed_count": 1,
+          "total_latency_ms": 44335.63,
+          "accuracy": 0.5
+        }
+      ]
+    }
+  },
+  "combined_summary": {
+    "total_questions": 39,
+    "total_passed": 23,
+    "overall_accuracy": 0.5897
+  }
+}
