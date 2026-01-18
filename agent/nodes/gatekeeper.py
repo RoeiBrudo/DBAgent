@@ -3,11 +3,10 @@ Gatekeeper node: checks if the request is legal (questions/visualization only).
 """
 
 import json
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage
 
 from agent.state import AgentState
-from config import get_llm_kwargs
+from config import get_llm
 
 
 GATEKEEPER_PROMPT = """You are a gatekeeper for a Text-to-SQL system.
@@ -66,7 +65,7 @@ def gatekeeper_node(state: AgentState) -> dict:
     schema = state.get("schema", {})
     schema_str = json.dumps(schema, indent=2) if schema else "No schema available"
     
-    llm = ChatOpenAI(**get_llm_kwargs())
+    llm = get_llm()
     
     prompt = GATEKEEPER_PROMPT.format(schema=schema_str, message=user_text)
     response = llm.invoke([HumanMessage(content=prompt)])

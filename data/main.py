@@ -21,7 +21,7 @@ NORMALIZED_DIR = (BASE_DIR / "normalized").resolve()
 NORMALIZED_DB = NORMALIZED_DIR / "turns.db"
 
 SPIDER_DB_ROOT = (BASE_DIR / "external" / "prem-research_spider" / "database").resolve()
-BIRD_DB_ROOT = (BASE_DIR / "external" / "bird_mini_dev" / "MINIDEV" / "dev_databases").resolve()
+BIRD_DB_ROOT = (BASE_DIR / "external" / "bird_dataset" / "dev_databases").resolve()
 
 
 # =============================================================================
@@ -231,3 +231,73 @@ def get_conversation(conversation_id: str) -> List[Dict[str, Any]]:
         turns.append(turn)
 
     return turns
+
+
+def get_datasets(dataset_type: Optional[str] = None) -> Dict[str, List[str]]:
+    """
+    Get list of available databases by dataset type.
+    
+    Args:
+        dataset_type: 'spider', 'bird', or None for all.
+    
+    Returns:
+        Dictionary with 'spider' and/or 'bird' keys, each containing list of database names.
+    """
+    result = {}
+    
+    if dataset_type is None or dataset_type == 'spider':
+        spider_dbs = []
+        if SPIDER_DB_ROOT.exists():
+            for db_dir in sorted(SPIDER_DB_ROOT.iterdir()):
+                if db_dir.is_dir():
+                    db_file = db_dir / f"{db_dir.name}.sqlite"
+                    if db_file.exists():
+                        spider_dbs.append(db_dir.name)
+        result['spider'] = spider_dbs
+    
+    if dataset_type is None or dataset_type == 'bird':
+        bird_dbs = []
+        if BIRD_DB_ROOT.exists():
+            for db_dir in sorted(BIRD_DB_ROOT.iterdir()):
+                if db_dir.is_dir():
+                    db_file = db_dir / f"{db_dir.name}.sqlite"
+                    if db_file.exists():
+                        bird_dbs.append(db_dir.name)
+        result['bird'] = bird_dbs
+    
+    return result
+
+
+def get_dbs(dataset_type: str) -> List[str]:
+    datasets = get_datasets(dataset_type)
+    return datasets.get(dataset_type, [])
+
+
+def get_all_dbs() -> Dict[str, Dict[str, str]]:
+    """
+    Get all available databases with their paths.
+    
+    Returns:
+        Dictionary mapping 'source/db_name' to {'path': full_path, 'source': source_name}
+    """
+    result = {}
+    
+    # Spider databases
+    if SPIDER_DB_ROOT.exists():
+        for db_dir in sorted(SPIDER_DB_ROOT.iterdir()):
+            if db_dir.is_dir():
+                db_file = db_dir / f"{db_dir.name}.sqlite"
+                if db_file.exists():
+                    key = f"spider/{db_dir.name}"
+                    result[key] = {"path": str(db_file), "source": "spider"}
+    
+    # Bird databases
+    if BIRD_DB_ROOT.exists():
+        for db_dir in sorted(BIRD_DB_ROOT.iterdir()):
+            if db_dir.is_dir():
+                db_file = db_dir / f"{db_dir.name}.sqlite"
+                if db_file.exists():
+                    key = f"bird/{db_dir.name}"
+                    result[key] = {"path": str(db_file), "source": "bird"}
+    
+    return result

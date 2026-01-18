@@ -102,14 +102,19 @@ DBAgent/
 │
 ├── evaluation/             # Batch evaluation
 │   ├── README.md
-│   ├── main.py             # CLI entrypoint
-│   ├── runner.py           # Evaluation loop
-│   └── config.yaml         # Default config
+│   ├── runner.py           # CLI + evaluation loop
+│   ├── metrics.py          # Metric computation
+│   └── eval_config.yaml    # Example/default config
 │
 ├── ui/                     # Chainlit UI
 │   ├── README.md
 │   ├── app.py              # Chainlit entry
-│   └── components/         # Chat, history, eval viewer
+│   ├── .chainlit/           # Chainlit project config (auto-managed)
+│   │   └── config.toml
+│   ├── public/              # Custom toolbar assets
+│   │   ├── custom.js
+│   │   └── custom.css
+│   └── components/          # Chat, history, eval viewer
 │
 ├── data/                   # Datasets and loaders
 │   ├── README.md
@@ -146,7 +151,8 @@ echo "OPENAI_API_KEY=sk-..." > .env
 ### 2. Interactive Chat
 
 ```bash
-chainlit run ui/app.py
+cd ui
+chainlit run app.py
 ```
 
 Opens at `http://localhost:8000`. Select a database and start asking questions.
@@ -154,14 +160,9 @@ Opens at `http://localhost:8000`. Select a database and start asking questions.
 ### 3. Run Evaluation
 
 ```bash
-# Default config
-python -m evaluation.main
-
-# Custom config
-python -m evaluation.main evaluation/config.yaml
-
-# Quick test
-python -m evaluation.main --source spider --split dev --limit 10
+# Examples
+python -m evaluation.runner --name quick_test --datasets spider --samples 10
+python -m evaluation.runner --name bird_small --datasets bird --samples 10
 ```
 
 Results saved to `results/<experiment_name>/`.
@@ -240,3 +241,26 @@ See `data/README.md` for setup instructions.
 - [`evaluation/README.md`](evaluation/README.md) - Evaluation module
 - [`ui/README.md`](ui/README.md) - UI components
 - [`data/README.md`](data/README.md) - Dataset loading
+
+## New Chat Status Prompt (copy/paste)
+
+Use this in a fresh chat to get an up-to-date status based on the repo:
+
+```text
+You are working in the DBAgent repo.
+
+Goal: summarize the CURRENT status of what works and how to run everything, based strictly on the codebase.
+
+Please:
+1) Read the READMEs: README.md, ui/README.md, agent/README.md, evaluation/README.md, data/README.md.
+2) Confirm how to run the UI: Chainlit is run from the ui/ directory (cd ui; chainlit run app.py).
+   The active Chainlit config is ui/.chainlit/config.toml (not root).
+3) Confirm toolbar implementation:
+   - Assets: ui/public/custom.js + ui/public/custom.css
+   - Backend endpoints: ui/app.py exposes /api/dbagent/datasets, /state, /switch-db, /sql-mode, /upload-db.
+   - Toolbar uses fetch() calls (no chat messages for UI actions).
+4) Confirm evaluation entrypoint and usage: python -m evaluation.runner ...
+5) List any gotchas (e.g., Chainlit can overwrite ui/.chainlit/config.toml, so custom_js/custom_css must stay enabled).
+
+Output a concise status report + exact commands.
+```

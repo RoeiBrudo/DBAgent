@@ -5,12 +5,11 @@ Writer node: converts the execution plan into SQL.
 import json
 import re
 import sqlparse
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
 from agent.state import AgentState, SQLExecution
 from agent.tools.db_tools import format_enrichment_for_prompt
-from config import get_llm_kwargs
+from config import get_llm
 
 
 WRITER_PROMPT = """You are a SQL writer for a Text-to-SQL system using SQLite.
@@ -136,7 +135,7 @@ Fix the error and write a corrected query.
     
     schema_str = json.dumps(schema, indent=2)
     
-    llm = ChatOpenAI(**get_llm_kwargs())
+    llm = get_llm()
     
     prompt = WRITER_PROMPT.format(
         schema=schema_str,

@@ -9,11 +9,47 @@ Usage:
 
 import argparse
 import json
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
 
 from langchain_core.messages import HumanMessage
+
+
+class OutOfCreditsError(Exception):
+    """Raised when API credits are exhausted."""
+    pass
+
+
+class LowCreditsWarning(Exception):
+    """Raised when API credits are running low."""
+    pass
+
+
+def check_api_error(error: Exception) -> None:
+    """
+    Check if an error is related to API credits/quota.
+    Raises OutOfCreditsError if credits are exhausted.
+    Prints warning if credits are low.
+    """
+    error_str = str(error).lower()
+    
+    # Out of credits - stop execution
+    if any(phrase in error_str for phrase in [
+        "insufficient_quota",
+        "you exceeded your current quota",
+        "billing hard limit",
+        "rate_limit_exceeded" and "quota" in error_str,
+    ]):
+        print("\n" + "="*60)
+        print("⚠️  OUT OF CREDITS - Stopping evaluation")
+        print("="*60)
+        raise OutOfCreditsError(str(error))
+    
+    # Low credits warning (rate limit may indicate approaching limit)
+    if "rate_limit" in error_str:
+        print("\n⚠️  WARNING: Rate limit hit - credits may be running low")
 
 from agent.state import AgentState
 from agent.tools.db_tools import connect_to_db, get_schema_enrichment
@@ -221,10 +257,30 @@ def run_pipeline(test_case: TestCase, dataset: str) -> dict:
         result["passed"] = accuracy_result["passed"]
         result["gold_results"] = accuracy_result["gold_results"][:5] if accuracy_result["gold_results"] else []
         result["generated_results"] = accuracy_result["generated_results"][:5] if accuracy_result["generated_results"] else []
+        result["generated_sql_time_ms"] = accuracy_result.get("generated_sql_time_ms", 0)
+        result["gold_sql_time_ms"] = accuracy_result.get("gold_sql_time_ms", 0)
         if not accuracy_result["passed"]:
             result["error"] = accuracy_result.get("error")
         
+        # Compute timing summary
+        result["timing"] = {
+            "agents": {
+                "gatekeeper_ms": result["steps"].get("gatekeeper", {}).get("latency_ms", 0),
+                "organizer_ms": result["steps"].get("organizer", {}).get("latency_ms", 0),
+                "planner_ms": result["steps"].get("planner", {}).get("latency_ms", 0),
+                "clarifier_ms": result["steps"].get("clarifier", {}).get("latency_ms", 0),
+                "writer_ms": result["steps"].get("writer", {}).get("latency_ms", 0),
+                "execute_ms": result["steps"].get("execute", {}).get("latency_ms", 0),
+                "validator_ms": result["steps"].get("validator", {}).get("latency_ms", 0),
+                "analysis_ms": result["steps"].get("analysis", {}).get("latency_ms", 0),
+            },
+            "generated_sql_ms": result["generated_sql_time_ms"],
+            "gold_sql_ms": result["gold_sql_time_ms"],
+            "total_workflow_ms": round((time.time() - total_start) * 1000, 2),
+        }
+        
     except Exception as e:
+        check_api_error(e)  # Raises OutOfCreditsError if credits exhausted
         result["error"] = f"Pipeline error: {str(e)}"
     
     result["total_latency_ms"] = round((time.time() - total_start) * 1000, 2)
@@ -372,6 +428,7 @@ def run_conversation(conversation: Conversation, dataset: str) -> dict:
                 turn_result["error"] = accuracy_result.get("error")
             
         except Exception as e:
+            check_api_error(e)  # Raises OutOfCreditsError if credits exhausted
             turn_result["error"] = f"Pipeline error: {str(e)}"
         
         turn_result["latency_ms"] = round((time.time() - turn_start) * 1000, 2)
@@ -425,16 +482,26 @@ def run_evaluation(
         total_passed = 0
         total_latency = 0
         
-        for i, conv in enumerate(conversations):
-            print(f"[{i+1}/{len(conversations)}] {conv.query_goal[:50]}... ({len(conv.turns)} turns)")
-            conv_result = run_conversation(conv, dataset)
-            results["conversations"].append(conv_result)
-            
-            total_turns += conv_result["turns_count"]
-            total_passed += conv_result["passed_count"]
-            total_latency += conv_result["total_latency_ms"]
-            
-            print(f"  {conv_result['passed_count']}/{conv_result['turns_count']} turns passed ({conv_result['total_latency_ms']:.0f}ms)")
+        try:
+            for i, conv in enumerate(conversations):
+                print(f"[{i+1}/{len(conversations)}] {conv.query_goal[:50]}... ({len(conv.turns)} turns)")
+                conv_result = run_conversation(conv, dataset)
+                results["conversations"].append(conv_result)
+                
+                total_turns += conv_result["turns_count"]
+                total_passed += conv_result["passed_count"]
+                total_latency += conv_result["total_latency_ms"]
+                
+                # Sum timings from turns
+                turns = conv_result.get("turns", [])
+                total_agents_ms = sum(sum(t.get("steps", {}).get(s, {}).get("latency_ms", 0) for s in ["gatekeeper", "organizer", "planner", "clarifier", "writer", "execute", "validator", "analysis"]) for t in turns)
+                gen_sql_ms = sum(t.get("generated_sql_time_ms", 0) for t in turns)
+                gold_sql_ms = sum(t.get("gold_sql_time_ms", 0) for t in turns)
+                print(f"  {conv_result['passed_count']}/{conv_result['turns_count']} turns | Agents: {total_agents_ms:.0f}ms | Gen SQL: {gen_sql_ms:.0f}ms | Gold SQL: {gold_sql_ms:.0f}ms")
+        except OutOfCreditsError:
+            print(f"\n🛑 Evaluation stopped early due to credit limit ({len(results['conversations'])}/{len(conversations)} completed)")
+            results["stopped_early"] = True
+            results["stop_reason"] = "out_of_credits"
         
         results["summary"] = {
             "total_conversations": len(conversations),
@@ -472,13 +539,22 @@ def run_evaluation(
         "questions": [],
     }
     
-    for i, test_case in enumerate(test_cases):
-        print(f"[{i+1}/{len(test_cases)}] {test_case.question[:50]}...")
-        question_result = run_pipeline(test_case, dataset)
-        results["questions"].append(question_result)
-        
-        status = "✓" if question_result["passed"] else "✗"
-        print(f"  {status} ({question_result['total_latency_ms']:.0f}ms)")
+    try:
+        for i, test_case in enumerate(test_cases):
+            print(f"[{i+1}/{len(test_cases)}] {test_case.question[:50]}...")
+            question_result = run_pipeline(test_case, dataset)
+            results["questions"].append(question_result)
+            
+            status = "✓" if question_result["passed"] else "✗"
+            timing = question_result.get("timing", {})
+            gen_sql_ms = timing.get("generated_sql_ms", 0)
+            gold_sql_ms = timing.get("gold_sql_ms", 0)
+            total_agents_ms = sum(timing.get("agents", {}).values())
+            print(f"  {status} | Agents: {total_agents_ms:.0f}ms | Gen SQL: {gen_sql_ms:.0f}ms | Gold SQL: {gold_sql_ms:.0f}ms")
+    except OutOfCreditsError:
+        print(f"\n🛑 Evaluation stopped early due to credit limit ({len(results['questions'])}/{len(test_cases)} completed)")
+        results["stopped_early"] = True
+        results["stop_reason"] = "out_of_credits"
     
     # Compute summary
     results["summary"] = compute_summary(results["questions"])
@@ -520,39 +596,53 @@ def run_multi_dataset_evaluation(
     total_questions = 0
     total_passed = 0
     
-    for dataset in datasets:
-        print(f"\n{'='*50}")
-        print(f"Running {dataset.upper()} evaluation...")
-        print(f"{'='*50}")
-        
-        # For CoSQL/SParC, use full conversation mode
-        use_full_conv = (dataset in ["cosql", "sparc"])
-        
-        result = run_evaluation(
-            name=f"{name}_{dataset}",
-            dataset=dataset,
-            samples=samples,
-            multi_turn=False,
-            full_conversation=use_full_conv,
-        )
-        
-        all_results["per_dataset_results"][dataset] = {
-            "summary": result["summary"],
-            "details": result.get("questions") or result.get("conversations", []),
-        }
-        
-        # Aggregate stats
-        if use_full_conv:
-            total_questions += result["summary"].get("total_turns", 0)
-            total_passed += result["summary"].get("passed_turns", 0)
-        else:
-            total_questions += result["summary"].get("total", 0)
-            total_passed += result["summary"].get("passed", 0)
-        
-        # Delete intermediate file
-        intermediate_path = RESULTS_DIR / f"{name}_{dataset}.json"
-        if intermediate_path.exists():
-            intermediate_path.unlink()
+    stopped_early = False
+    try:
+        for dataset in datasets:
+            print(f"\n{'='*50}")
+            print(f"Running {dataset.upper()} evaluation...")
+            print(f"{'='*50}")
+            
+            # For CoSQL/SParC, use full conversation mode
+            use_full_conv = (dataset in ["cosql", "sparc"])
+            
+            result = run_evaluation(
+                name=f"{name}_{dataset}",
+                dataset=dataset,
+                samples=samples,
+                multi_turn=False,
+                full_conversation=use_full_conv,
+            )
+            
+            all_results["per_dataset_results"][dataset] = {
+                "summary": result["summary"],
+                "details": result.get("questions") or result.get("conversations", []),
+            }
+            
+            # Aggregate stats
+            if use_full_conv:
+                total_questions += result["summary"].get("total_turns", 0)
+                total_passed += result["summary"].get("passed_turns", 0)
+            else:
+                total_questions += result["summary"].get("total", 0)
+                total_passed += result["summary"].get("passed", 0)
+            
+            # Delete intermediate file
+            intermediate_path = RESULTS_DIR / f"{name}_{dataset}.json"
+            if intermediate_path.exists():
+                intermediate_path.unlink()
+            
+            # Check if this result was stopped early
+            if result.get("stopped_early"):
+                stopped_early = True
+                break
+    except OutOfCreditsError:
+        stopped_early = True
+        print("\n🛑 Multi-dataset evaluation stopped due to credit limit")
+    
+    if stopped_early:
+        all_results["stopped_early"] = True
+        all_results["stop_reason"] = "out_of_credits"
     
     all_results["combined_summary"] = {
         "total_questions": total_questions,
@@ -575,14 +665,91 @@ def run_multi_dataset_evaluation(
     return all_results
 
 
+def run_from_config(config_path: str):
+    """
+    Run multiple evaluations from a YAML config file.
+    
+    Config format:
+        runs:
+          - name: eval_gpt4o
+            model: gpt-4o
+            datasets: [bird, spider]
+            samples: 10
+    """
+    import yaml
+    import config as app_config
+    
+    with open(config_path) as f:
+        cfg = yaml.safe_load(f)
+    
+    runs = cfg.get("runs", [])
+    print(f"Loaded {len(runs)} evaluation runs from config")
+    
+    for i, run in enumerate(runs):
+        name = run.get("name", f"eval_{i}")
+        model = run.get("model", "gpt-4o")
+        datasets = run.get("datasets", ["spider"])
+        samples = run.get("samples", 10)
+        full_conversation = run.get("full_conversation", False)
+        
+        print(f"\n{'='*60}")
+        print(f"Run {i+1}/{len(runs)}: {name} (model: {model})")
+        print(f"{'='*60}")
+        
+        # Dynamically set the model for this run
+        app_config.LLM_MODEL = model
+        
+        try:
+            if len(datasets) == 1:
+                dataset = datasets[0]
+                use_full_conv = full_conversation or (dataset in ["cosql", "sparc"])
+                run_evaluation(
+                    name=name,
+                    dataset=dataset,
+                    samples=samples,
+                    multi_turn=False,
+                    full_conversation=use_full_conv,
+                )
+            else:
+                run_multi_dataset_evaluation(
+                    name=name,
+                    datasets=datasets,
+                    samples=samples,
+                    full_conversation=full_conversation,
+                )
+        except OutOfCreditsError:
+            print(f"\n🛑 Stopping all runs due to credit limit")
+            break
+    
+    print(f"\n{'='*60}")
+    print(f"All evaluation runs complete!")
+    print(f"{'='*60}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run Text2SQL evaluation")
-    parser.add_argument("--name", required=True, help="Name for this evaluation run")
-    parser.add_argument("--datasets", nargs="+", choices=SUPPORTED_DATASETS, required=True, help="Datasets to use")
+    parser.add_argument("--config", "-c", help="Path to YAML config file for batch runs")
+    parser.add_argument("--name", help="Name for this evaluation run")
+    parser.add_argument("--model", "-m", help="LLM model to use (overrides config.py)")
+    parser.add_argument("--datasets", nargs="+", choices=SUPPORTED_DATASETS, help="Datasets to use")
     parser.add_argument("--samples", type=int, default=10, help="Number of samples per dataset")
     parser.add_argument("--full-conversation", action="store_true", help="Run full conversations (for cosql/sparc)")
     
     args = parser.parse_args()
+    
+    # Config file mode
+    if args.config:
+        run_from_config(args.config)
+        return
+    
+    # CLI mode - require name and datasets
+    if not args.name or not args.datasets:
+        parser.error("--name and --datasets are required unless using --config")
+    
+    # Override model if specified
+    if args.model:
+        import config as app_config
+        app_config.LLM_MODEL = args.model
     
     if len(args.datasets) == 1:
         # Single dataset mode

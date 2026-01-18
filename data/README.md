@@ -113,51 +113,16 @@ conn.close()
 
 ## Scripts
 
-### `scripts/prepare_datasets.py`
-Main data preparation pipeline that:
-1. **Phase 1**: Loads and tests individual datasets (Spider, BIRD, CoSQL, SParC)
-2. **Phase 2**: Normalizes all datasets into a unified format and tests the result
+### Entry points
 
-**Datasets processed:**
-- **Spider** (8,034 single-turn examples) - Automatically downloaded from HuggingFace
-- **BIRD Mini-Dev** (500 single-turn examples) - Requires manual download (see Quick Start)
-- **CoSQL** (8,350 multi-turn conversation turns) - Requires manual download (see Quick Start)
-- **SParC** (10,228 multi-turn conversation turns) - Automatically downloaded from HuggingFace
+This package is driven by two module entry points:
 
-**Key Features:**
-- Unified schema across all datasets
-- Context tracking for multi-turn conversations
-- Previous SQL queries stored in `context_gold_sql` for multi-turn datasets
-- Database file paths for direct SQL execution
-
-**Usage:**
 ```bash
-cd helpers
-python prepare.py
-```
+# Build / refresh the unified SQLite dataset
+python3 -m data.create
 
-**Output:**
-- Creates `normalized/turns.db` - SQLite database with ~27,112 unified turns
-- Comprehensive test reports for each phase
-
-### `scripts/test_datasets.py`
-Standalone testing and example script for validating datasets.
-
-**Usage:**
-```bash
-cd helpers
-
-# Run all tests + show examples
-python test.py
-
-# Test only individual datasets
-python test.py individual
-
-# Test only unified dataset
-python test.py unified
-
-# Show example turns from each source
-python test.py examples
+# Validate that gold SQL + databases are accessible
+python3 -m data.test
 ```
 
 **Tests performed:**
@@ -193,18 +158,14 @@ pip install datasets huggingface_hub
 ```
 data/
 ├── main.py                  # Core data access module
-├── scripts/
-│   ├── prepare_datasets.py  # Main pipeline
-│   ├── test_datasets.py     # Testing & examples
-│   └── README.md            # This file
+├── create.py                # Builds normalized/turns.db
+├── test.py                  # Data validation
 ├── normalized/
-│   └── turns.db             # Output: unified dataset (created by prepare_datasets.py)
+│   └── turns.db             # Output: unified dataset (created by data.create)
 ├── external/                # Manual downloads go here
-│   ├── prem-research_spider/  # Auto-downloaded by prepare_datasets.py
-│   ├── bird_mini_dev/         # ⚠️ MANUAL DOWNLOAD REQUIRED
-│   │   └── MINIDEV/
-│   │       └── dev_databases/
-│   └── cosql/                 # ⚠️ MANUAL DOWNLOAD REQUIRED
+│   ├── prem-research_spider/  # Auto-downloaded when missing
+│   ├── bird_dataset/          # MANUAL DOWNLOAD REQUIRED
+│   │   └── dev_databases/
+│   └── cosql_dataset/         # OPTIONAL (only if you want CoSQL)
 │       └── sql_state_tracking/
 └── _hf_cache/               # HuggingFace cache (auto-created)
-```

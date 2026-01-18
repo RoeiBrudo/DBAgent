@@ -3,11 +3,10 @@ Analysis node: generates natural language answer from query results.
 """
 
 import json
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
 from agent.state import AgentState
-from config import get_llm_kwargs
+from config import get_llm
 
 
 ANALYSIS_PROMPT = """You are a data analyst assistant. Given the user's question, the SQL query that was executed, and the results, provide a clear and helpful natural language answer.
@@ -68,7 +67,7 @@ def analysis_node(state: AgentState) -> dict:
     else:
         results_str = json.dumps(results, indent=2)
     
-    llm = ChatOpenAI(**get_llm_kwargs())
+    llm = get_llm()
     
     prompt = ANALYSIS_PROMPT.format(
         question=question,

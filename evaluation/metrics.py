@@ -113,26 +113,40 @@ def execution_accuracy(
             - passed: bool
             - generated_results: list
             - gold_results: list
+            - generated_sql_time_ms: float
+            - gold_sql_time_ms: float
             - error: str or None
     """
-    # Execute generated SQL
+    import time
+    
+    # Execute generated SQL with timing
+    gen_start = time.time()
     gen_result = execute_sql(conn, generated_sql)
+    gen_time_ms = (time.time() - gen_start) * 1000
+    
     if not gen_result.success:
         return {
             "passed": False,
             "generated_results": [],
             "gold_results": [],
+            "generated_sql_time_ms": round(gen_time_ms, 2),
+            "gold_sql_time_ms": 0,
             "error": f"Generated SQL failed: {gen_result.error}",
         }
     
-    # Preprocess and execute gold SQL
+    # Preprocess and execute gold SQL with timing
     gold_sql_clean = preprocess_gold_sql(gold_sql)
+    gold_start = time.time()
     gold_result = execute_sql(conn, gold_sql_clean)
+    gold_time_ms = (time.time() - gold_start) * 1000
+    
     if not gold_result.success:
         return {
             "passed": False,
             "generated_results": gen_result.results,
             "gold_results": [],
+            "generated_sql_time_ms": round(gen_time_ms, 2),
+            "gold_sql_time_ms": round(gold_time_ms, 2),
             "error": f"Gold SQL failed: {gold_result.error}",
         }
     
@@ -146,6 +160,8 @@ def execution_accuracy(
         "passed": passed,
         "generated_results": gen_result.results,
         "gold_results": gold_result.results,
+        "generated_sql_time_ms": round(gen_time_ms, 2),
+        "gold_sql_time_ms": round(gold_time_ms, 2),
         "error": None if passed else "Results do not match",
     }
 

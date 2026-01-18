@@ -3,11 +3,10 @@ Planner node: generates a plain English SQL execution plan.
 """
 
 import json
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
 from agent.state import AgentState
-from config import get_llm_kwargs
+from config import get_llm
 
 
 PLANNER_PROMPT = """You are a SQL query planner for a Text-to-SQL system.
@@ -80,7 +79,7 @@ def planner_node(state: AgentState) -> dict:
     
     schema_str = json.dumps(schema, indent=2)
     
-    llm = ChatOpenAI(**get_llm_kwargs())
+    llm = get_llm()
     
     prompt = PLANNER_PROMPT.format(
         schema=schema_str,

@@ -8,11 +8,10 @@ Determines what the question is really asking for:
 """
 
 import json
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
 from agent.state import AgentState
-from config import get_llm_kwargs
+from config import get_llm
 
 
 CLARIFIER_PROMPT = """You are a question analyzer for a Text-to-SQL system.
@@ -70,7 +69,7 @@ def clarifier_node(state: AgentState) -> dict:
     
     schema_str = json.dumps(schema, indent=2) if schema else "No schema available"
     
-    llm = ChatOpenAI(**get_llm_kwargs())
+    llm = get_llm()
     
     prompt = CLARIFIER_PROMPT.format(
         question=question,

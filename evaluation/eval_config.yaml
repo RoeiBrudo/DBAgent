@@ -1,0 +1,23 @@
+# Evaluation Configuration
+# Run with: ./venv/bin/python -m evaluation.runner --config evaluation/eval_config.yaml
+
+runs:
+  - name: eval_gpt4o
+    model: gpt-4o
+    datasets: [bird, spider, cosql, sparc]
+    samples: 10
+
+  - name: eval_gpt4o_mini
+    model: gpt-4o-mini
+    datasets: [bird, spider, cosql, sparc]
+    samples: 10
+
+  - name: eval_claude_sonnet4
+    model: claude-sonnet-4-20250514
+    datasets: [bird, spider, cosql, sparc]
+    samples: 10
+
+  - name: eval_claude_haiku
+    model: claude-3-5-haiku-20241022
+    datasets: [bird, spider, cosql, sparc]
+    samples: 10

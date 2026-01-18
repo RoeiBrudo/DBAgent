@@ -4,3 +4,5 @@ data/_hf_cache
 data/external
 data/normalized
 .env
+ui/.chainlit/translations
+results

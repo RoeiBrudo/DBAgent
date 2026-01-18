@@ -3,11 +3,10 @@ Organizer node: identifies tables, fields, and joins needed for the query.
 """
 
 import json
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
 from agent.state import AgentState, DataSources, JoinInfo
-from config import get_llm_kwargs
+from config import get_llm
 
 
 ORGANIZER_PROMPT = """You are a database schema analyzer for a Text-to-SQL system.
@@ -78,7 +77,7 @@ def organizer_node(state: AgentState) -> dict:
     
     schema_str = json.dumps(schema, indent=2)
     
-    llm = ChatOpenAI(**get_llm_kwargs())
+    llm = get_llm()
     
     prompt = ORGANIZER_PROMPT.format(
         schema=schema_str,

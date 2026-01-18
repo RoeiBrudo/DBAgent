@@ -1,0 +1,52 @@
+/* Custom styles for DBAgent UI */
+
+/* Step indicators */
+.step-success {
+    color: #22c55e;
+}
+
+.step-error {
+    color: #ef4444;
+}
+
+/* SQL code blocks */
+.sql-query {
+    background-color: #1e293b;
+    border-radius: 8px;
+    padding: 12px;
+    font-family: 'Fira Code', monospace;
+}
+
+/* Results table */
+.results-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+}
+
+.results-table th,
+.results-table td {
+    padding: 8px 12px;
+    border: 1px solid #334155;
+    text-align: left;
+}
+
+.results-table th {
+    background-color: #1e293b;
+    font-weight: 600;
+}
+
+/* Collapsible sections */
+.collapsible-header {
+    cursor: pointer;
+    padding: 8px;
+    background-color: #1e293b;
+    border-radius: 4px;
+    margin-bottom: 4px;
+}
+
+.collapsible-content {
+    padding: 8px;
+    background-color: #0f172a;
+    border-radius: 4px;
+}

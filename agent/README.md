@@ -46,14 +46,14 @@ flowchart TD
 
 | # | Node | Purpose | Writes to State |
 |---|------|---------|-----------------|
-| 1 | **guardrails** | Scope check, handle greetings | `is_in_scope` |
+| 1 | **gatekeeper** | Safety / legality gating | `is_legal` |
 | 2 | **organizer** | Identify tables, fields, joins | `data_sources` |
 | 3 | **planner** | Plain English SQL plan | `logic_plan` |
-| 4 | **writer** | Generate SQL | `sql_query` |
-| 5 | **execute** | Run via `safe_query` | `execution`, `query_result`, `error` |
-| 6 | **error_agent** | Fix SQL, escalate if needed | `sql_query`, `logic_plan`, `iteration` |
-| 7 | **analysis** | Natural language answer | `final_answer` |
-| 8 | **decide_graph** | Should visualize? | `needs_graph`, `graph_type` |
+| 4 | **clarifier** | Analyze output expectations | `clarification` |
+| 5 | **writer** | Generate SQL | `sql_query` |
+| 6 | **execute** | Run via `safe_query` | `execution`, `query_result`, `error` |
+| 7 | **validator** | Validate results / request retries | `validation_passed` |
+| 8 | **analysis** | Natural language answer | `final_answer` |
 | 9 | **viz_agent** | Safe Plotly generation | `graph_json` |
 
 ### Error Recovery Strategy
@@ -72,13 +72,15 @@ class AgentState(TypedDict, total=False):
     messages: Annotated[List[BaseMessage], add_messages]
     
     # DB context (set once per conversation)
-    db_file: str
-    schema: dict  # {table: [columns]}
+    conn: sqlite3.Connection
+    schema: Dict[str, List[str]]
+    schema_enrichment: dict
     
     # SQL pipeline outputs
-    data_sources: dict   # {tables: [], fields: [], joins: []}
-    logic_plan: str      # plain English execution plan
-    sql_query: str       # final SQL
+    data_sources: DataSources
+    logic_plan: str
+    clarification: dict
+    sql_query: str
     
     # Execution
     query_result: str
@@ -88,7 +90,8 @@ class AgentState(TypedDict, total=False):
     # Control flow
     error: str
     iteration: int
-    is_in_scope: bool
+    is_legal: bool
+    validation_passed: bool
     
     # Visualization
     needs_graph: bool

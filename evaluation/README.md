@@ -155,38 +155,20 @@ results/
 ### CLI
 
 ```bash
-# Run with default config
-python -m evaluation.main
+# Basic examples
+python -m evaluation.runner --name quick_test --datasets spider --samples 10
+python -m evaluation.runner --name bird_small --datasets bird --samples 10
 
-# Run with custom config
-python -m evaluation.main evaluation/config.yaml
+# Multi-dataset
+python -m evaluation.runner --name multi_eval --datasets bird cosql --samples 5
 
-# Run specific dataset/split
-python -m evaluation.main --source spider --split dev --limit 100
+# Multi-turn evaluation mode
+python -m evaluation.runner --name cosql_conv --datasets cosql --samples 5 --full-conversation
 ```
 
-### Config File
+### Config
 
-```yaml
-experiment_name: spider_dev_run_1
-
-data:
-  source: spider          # spider, bird, cosql, sparc, or null for all
-  split: dev              # train, dev, or null for all
-  limit: null             # max turns to evaluate, null for all
-  min_turn_index: 0       # for multi-turn: start from turn N
-
-agent:
-  model: gpt-4o-mini
-  msx_ms: 30000           # SQL execution timeout
-  max_retries: 4          # max error recovery attempts
-
-eval:
-  compare_order_insensitive: true
-  save_agent_steps: true  # include full step details in results
-
-output_dir: results
-```
+This repo includes `evaluation/eval_config.yaml` as an example config file.
 
 ## Directory Structure
 
@@ -194,11 +176,11 @@ output_dir: results
 evaluation/
 ├── README.md             # This file
 ├── __init__.py
-├── main.py               # CLI entrypoint
-├── runner.py             # Core evaluation loop
+├── runner.py             # CLI + evaluation loop
 ├── metrics.py            # Metric computation
-├── comparison.py         # Result comparison logic
-└── config.yaml           # Default configuration
+├── analyze.py            # Analyze / summarize existing results
+├── datasets.py           # Dataset loading helpers for eval
+└── eval_config.yaml      # Example/default configuration
 ```
 
 ## Viewing Results

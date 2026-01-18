@@ -1,0 +1,181 @@
+/* DBAgent Custom Toolbar Styles */
+
+#dbagent-toolbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-bottom: 2px solid #4ecdc4;
+    padding: 10px 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+.dba-container {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Title Section */
+.dba-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-right: 20px;
+}
+
+.dba-logo {
+    font-size: 28px;
+}
+
+.dba-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: #4ecdc4;
+    letter-spacing: 0.5px;
+}
+
+.dba-desc {
+    font-size: 12px;
+    color: #888;
+    border-left: 1px solid #444;
+    padding-left: 10px;
+    margin-left: 5px;
+}
+
+/* Dropdown */
+.dba-dropdown {
+    position: relative;
+}
+
+.dba-select {
+    background: #2d2d44;
+    color: #fff;
+    border: 1px solid #4ecdc4;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    min-width: 180px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%234ecdc4' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+}
+
+.dba-select:hover {
+    background: #3d3d5c;
+}
+
+.dba-select:focus {
+    outline: none;
+    border-color: #4ecdc4;
+    box-shadow: 0 0 0 2px rgba(78, 205, 196, 0.2);
+}
+
+/* Upload Button */
+.dba-upload-btn {
+    background: linear-gradient(135deg, #4ecdc4 0%, #44a08d 100%);
+    color: #1a1a2e;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dba-upload-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(78, 205, 196, 0.3);
+}
+
+/* Status */
+.dba-status {
+    background: #2d2d44;
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 1px solid #444;
+}
+
+#dba-current {
+    color: #4ecdc4;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* Mode Toggle */
+.dba-mode {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+}
+
+.dba-mode-label {
+    color: #888;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.dba-toggle {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+}
+
+.dba-toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.dba-toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #4ecdc4;
+    transition: 0.3s;
+    border-radius: 26px;
+}
+
+.dba-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+input:checked + .dba-toggle-slider {
+    background-color: #ff6b6b;
+}
+
+input:checked + .dba-toggle-slider:before {
+    transform: translateX(24px);
+}
+
+/* Adjust main content */
+main, .cl-main {
+    padding-top: 70px !important;
+}
+
+/* Hide default chat profiles */
+[class*="chat-profile"], [class*="ChatProfile"] {
+    display: none !important;
+}

@@ -7,11 +7,10 @@ returns feedback to trigger a retry with corrected approach.
 
 import json
 import re
-from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
 from agent.state import AgentState
-from config import get_llm_kwargs
+from config import get_llm
 
 
 VALIDATOR_PROMPT = """You are a SQL result validator. Analyze the query and results to detect issues.
@@ -87,7 +86,7 @@ def validator_node(state: AgentState) -> dict:
     # Build schema string for relevant tables
     schema_str = json.dumps(schema, indent=2)
     
-    llm = ChatOpenAI(**get_llm_kwargs())
+    llm = get_llm()
     
     prompt = VALIDATOR_PROMPT.format(
         question=question,
